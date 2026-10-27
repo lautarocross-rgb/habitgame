@@ -1287,6 +1287,19 @@
     .gate-switch .link-btn { font-size: 13.5px; }
     .gate-note { margin-top: 14px; color: var(--faint); font-size: 11.5px; line-height: 1.5; text-align: center; }
 
+    .weekday-picker { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+    .weekday-picker button { min-height: 44px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); color: var(--muted); font-weight: 800; }
+    .weekday-picker button.is-on { background: var(--accent, #7c5cff); color: #fff; border-color: transparent; }
+    .weekday-presets { display: flex; gap: 8px; margin-top: 8px; }
+    .report-list { display: grid; gap: 10px; margin-top: 10px; }
+    .report-row { display: grid; gap: 4px; }
+    .report-row-top { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+    .report-row small { color: var(--muted); font-size: 12px; }
+    .report-bar { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+    .report-bar i { display: block; height: 100%; border-radius: 99px; background: var(--habit, #7c5cff); }
+    .report-sub { margin: 16px 0 0; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
+    .heat-cell.is-optional { background: transparent; border: 1px dashed var(--border); color: var(--faint); }
+    .heatmap-legend i.optional { background: transparent; border: 1px dashed var(--faint); }
     .heat-cell.is-selected { outline: 2px solid var(--accent, #fff); outline-offset: 1px; }
 
     /* ---------- Cuenta (login) ---------- */
@@ -1533,6 +1546,7 @@
         </div>
       </div>
       <div class="progress-grid">
+        <article class="panel-card report-card" id="report-card"></article>
         <article class="panel-card" id="goal-card"></article>
         <article class="panel-card" id="level-card"></article>
         <article class="panel-card history-card" id="history-card"></article>
@@ -1585,6 +1599,15 @@
         <input id="habit-points" name="habit-points" type="number" min="1" max="1000" step="1" value="10" required inputmode="numeric">
         <small>Se multiplican por la racha y por tu consistencia semanal. En hábitos por bloques se otorgan al cumplir el objetivo; los bloques parciales suman puntos proporcionales. Cambiar este valor no altera los puntos ya ganados.</small>
       </label>
+      <div class="field">
+        <span>Días obligatorios</span>
+        <div class="weekday-picker" id="habit-days" role="group" aria-label="Días obligatorios"></div>
+        <div class="weekday-presets">
+          <button class="btn btn-small" type="button" data-days-preset="all">Todos</button>
+          <button class="btn btn-small" type="button" data-days-preset="weekdays">Lun–Vie</button>
+        </div>
+        <small>Los días sin marcar son opcionales: si los hacés suman como extra, y si no, no rompen la racha ni bajan tu cumplimiento. Ej.: gym de lunes a viernes, y el finde opcional.</small>
+      </div>
       <label class="field">
         <span>Tipo de hábito</span>
         <select id="habit-mode" name="habit-mode">
@@ -2083,6 +2106,7 @@
       mode,
       blockMinutes,
       targetBlocks,
+      days: normalizeDays(item.days),
       blocks,
       history,
       isDemo: Boolean(item.isDemo)
@@ -2263,6 +2287,18 @@
     return 0.2;
   }
 
+  const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+  function normalizeDays(value) {
+    if (!Array.isArray(value)) return ALL_DAYS.slice();
+    const set = Array.from(new Set(value.map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6))).sort();
+    return set.length ? set : ALL_DAYS.slice();
+  }
+  function isRequiredDay(habit, key) {
+    const days = habit.days;
+    if (!Array.isArray(days) || days.length === 0 || days.length === 7) return true;
+    return days.includes(parseDateKey(key).getDay());
+  }
+
   function getConsistencyForDate(habit, endKey, history) {
     if (!endKey) return 1;
     const created = habit.createdAt || endKey;
@@ -2278,6 +2314,8 @@
       if (status === "done") {
         done++;
         total++;
+      } else if (!isRequiredDay(habit, key)) {
+        continue;
       } else if (key < today || key === endKey) {
         total++;
       }
@@ -2377,6 +2415,9 @@
               totalPoints += partialPoints;
             }
           }
+        } else if (!isRequiredDay(habit, key)) {
+          // Día opcional (ej. fin de semana): no suma ni rompe la racha.
+          record.status = "optional";
         } else {
           if (streak > 0) runHadRisk = true;
           consecutiveFails += 1;
@@ -2919,8 +2960,10 @@
     let points = 0;
     for (const habit of habits) {
       if (habit.history[key] === "paused") continue;
+      const isDone = habit.history[key] === "done";
+      if (!isDone && !isRequiredDay(habit, key)) continue;
       total++;
-      if (habit.history[key] === "done") done++;
+      if (isDone) done++;
       const record = getHabitAnalysis(habit).dayMap.get(key);
       if (record) points += record.totalPoints || 0;
     }
@@ -2952,6 +2995,8 @@
     if (beforeCreation) note = "Todavía no existía";
     else if (paused) note = "En pausa";
     else if (!editable) note = done ? "Hecho" : "Sin marcar · fuera del rango de corrección";
+    const optional = !done && !isRequiredDay(habit, key);
+    if (optional && editable) note = `Opcional · extra · 🔥 ${streak}`;
 
     if (isBlock && !beforeCreation) {
       const block = getBlockState(habit, key);
@@ -2967,7 +3012,7 @@
             <button class="q-step" type="button" data-action="remove-block" data-id="${id}" data-date="${key}" aria-label="Quitar un bloque de ${escapeAttr(habit.name)}" ${completed > 0 ? "" : "disabled"}>−</button>
             <button class="q-step q-plus" type="button" data-action="log-block" data-id="${id}" data-date="${key}" aria-label="Registrar un bloque de ${escapeAttr(habit.name)}" ${done ? "disabled" : ""}>＋</button>` : ""}
         </div>`;
-      return { html, done, editable };
+      return { html, done, editable, optional };
     }
 
     if (!editable) {
@@ -2978,7 +3023,7 @@
           <span class="q-main"><strong>${name}</strong><small>${note}</small></span>
           <span class="q-check">${icon}</span>
         </div>`;
-      return { html, done, editable };
+      return { html, done, editable, optional };
     }
 
     const html = `
@@ -2988,7 +3033,7 @@
         ${points > 0 ? `<span class="q-pts${done ? "" : " is-preview"}">+${formatNumber(points)}</span>` : ""}
         <span class="q-check">${done ? "✓" : ""}</span>
       </button>`;
-    return { html, done, editable };
+    return { html, done, editable, optional };
   }
 
   function renderDayPanel() {
@@ -3031,10 +3076,12 @@
     const pending = [];
     const finished = [];
     const others = [];
+    const optionals = [];
     for (const habit of habits) {
       const row = quickRow(habit, key);
       if (!row.editable) others.push(row.html);
       else if (row.done) finished.push(row.html);
+      else if (row.optional) optionals.push(row.html);
       else pending.push(row.html);
     }
     const pct = stats.total ? Math.round((stats.done / stats.total) * 100) : 0;
@@ -3062,6 +3109,7 @@
       ${allDone ? '<p class="day-allclear">🎉 ¡Todo marcado para este día!</p>' : ""}
       <div class="qlist">${pending.join("")}</div>
       ${finished.length ? `<p class="q-group-title">Hechos (${finished.length})</p><div class="qlist">${finished.join("")}</div>` : ""}
+      ${optionals.length ? `<p class="q-group-title">Opcionales / extra (${optionals.length})</p><div class="qlist">${optionals.join("")}</div>` : ""}
       ${others.length ? `<p class="q-group-title">Sin acción</p><div class="qlist">${others.join("")}</div>` : ""}`;
   }
 
@@ -3295,6 +3343,7 @@
       else if (status === "done") cls += " is-done";
       else if (isPartial) cls += " is-partial";
       else if (status === "failed") cls += " is-failed";
+      else if (!isRequiredDay(habit, key)) cls += " is-optional";
       else if (isToday) cls += " is-gray";
       else cls += " is-failed";
       if (isToday) cls += " is-today";
@@ -3306,6 +3355,7 @@
       else if (status === "paused") title += "en pausa";
       else if (isPartial) title += `${blocksCompleted}/${blockTarget} bloques · +${formatNumber(record?.partialPoints || 0)} pts parciales`;
       else if (status === "failed") title += "fallado";
+      else if (!isRequiredDay(habit, key)) title += "día opcional";
       else if (isToday) title += "sin marcar todavía";
       else title += "fallado";
 
@@ -3333,6 +3383,7 @@
           ${isBlockHabit ? '<span><i class="partial"></i>Parcial</span>' : ""}
           <span><i class="failed"></i>Fallado</span>
           <span><i class="gray"></i>Sin marcar</span>
+          ${Array.isArray(habit.days) && habit.days.length < 7 ? '<span><i class="optional"></i>Opcional</span>' : ""}
         </div>
       </div>`;
   }
@@ -3481,12 +3532,78 @@
      Render de progreso, récords y logros
      ============================================================ */
   function renderProgress() {
+    renderReportCard();
     renderGoalCard();
     renderLevelCard();
     renderHistoryCard();
     renderAchievementsCard();
     renderAppCard();
     renderSyncCard();
+  }
+
+  /* Informe: cumplimiento de los últimos 30 días por hábito (solo días obligatorios). */
+  function buildHabitReport(habit, windowDays = 30) {
+    const today = todayKey();
+    let start = addDaysKey(today, -(windowDays - 1));
+    if (start < habit.createdAt) start = habit.createdAt;
+    let required = 0, doneRequired = 0, extras = 0;
+    const missByWeekday = [0, 0, 0, 0, 0, 0, 0];
+    for (let key = start; key <= today; key = addDaysKey(key, 1)) {
+      const status = habit.history[key];
+      if (status === "paused") continue;
+      const req = isRequiredDay(habit, key);
+      if (status === "done") {
+        if (req) { required++; doneRequired++; } else extras++;
+      } else if (req && key < today) {
+        required++;
+        missByWeekday[parseDateKey(key).getDay()]++;
+      }
+    }
+    let worstDay = -1, worstCount = 0;
+    missByWeekday.forEach((n, i) => { if (n > worstCount) { worstCount = n; worstDay = i; } });
+    const analysis = getHabitAnalysis(habit);
+    return {
+      habit, required, doneRequired, extras,
+      rate: required ? doneRequired / required : null,
+      worstDay: worstCount >= 2 ? worstDay : -1,
+      streak: analysis.currentStreak, best: analysis.bestStreak
+    };
+  }
+
+  function renderReportCard() {
+    const el = $("report-card");
+    if (!el) return;
+    const habits = state.habits.filter((habit) => !habit.archived);
+    const reports = habits.map((habit) => buildHabitReport(habit));
+    const ready = reports.filter((r) => r.required >= 3).sort((a, b) => b.rate - a.rate);
+    if (!ready.length) {
+      el.innerHTML = `<h3>Informe de hábitos</h3><p class="chart-note">Cuando tengas al menos 3 días obligatorios en un hábito, acá vas a ver cuáles cumplís más y cuáles tenés que mejorar (últimos 30 días).</p>`;
+      return;
+    }
+    const row = (r) => {
+      const pct = Math.round(r.rate * 100);
+      const bits = [`${r.doneRequired}/${r.required} días obligatorios`];
+      if (r.extras) bits.push(`${r.extras} extra`);
+      bits.push(`racha 🔥 ${r.streak}`);
+      if (r.worstDay >= 0) bits.push(`fallás más los ${DAY_LONG[r.worstDay]}`);
+      return `
+        <div class="report-row" style="--habit:${safeColor(r.habit.color)}">
+          <div class="report-row-top"><strong>${escapeHtml(r.habit.emoji)} ${escapeHtml(r.habit.name)}</strong><span>${pct}%</span></div>
+          <div class="report-bar"><i style="width:${pct}%"></i></div>
+          <small>${bits.join(" · ")}</small>
+        </div>`;
+    };
+    const strong = ready.filter((r) => r.rate >= 0.8).slice(0, 5);
+    const weak = ready.filter((r) => r.rate < 0.8).reverse().slice(0, 5);
+    const total = ready.reduce((n, r) => n + r.required, 0);
+    const done = ready.reduce((n, r) => n + r.doneRequired, 0);
+    el.innerHTML = `
+      <h3>Informe de hábitos</h3>
+      <p class="chart-note">Últimos 30 días · cumplimiento general ${Math.round((done / total) * 100)}% (${done}/${total}). Los días opcionales no cuentan en contra.</p>
+      <p class="report-sub">💪 Los que más cumplís</p>
+      <div class="report-list">${strong.length ? strong.map(row).join("") : '<small class="chart-note">Todavía ninguno llega al 80%. ¡A por el primero!</small>'}</div>
+      <p class="report-sub">🎯 Para mejorar</p>
+      <div class="report-list">${weak.length ? weak.map(row).join("") : '<small class="chart-note">Nada por mejorar: todos arriba del 80%. 🔥</small>'}</div>`;
   }
 
   function renderGoalCard() {
@@ -3843,6 +3960,7 @@
     const habits = state.habits.filter((habit) =>
       !habit.archived &&
       habit.createdAt <= today &&
+      isRequiredDay(habit, today) &&
       habit.history[today] !== "done" &&
       habit.history[today] !== "paused"
     ).length;
@@ -4636,6 +4754,16 @@
     $("habit-block-summary").textContent = `Objetivo diario: ${target * minutes} min (${target} ${target === 1 ? "bloque" : "bloques"} de ${minutes} min).`;
   }
 
+  function renderDaysPicker(days) {
+    const order = [1, 2, 3, 4, 5, 6, 0];
+    const labels = { 1: "L", 2: "M", 3: "M", 4: "J", 5: "V", 6: "S", 0: "D" };
+    $("habit-days").innerHTML = order.map((d) =>
+      `<button type="button" data-weekday="${d}" class="${days.includes(d) ? "is-on" : ""}" aria-pressed="${days.includes(d)}">${labels[d]}</button>`).join("");
+  }
+  function readDaysPicker() {
+    return normalizeDays(Array.from(document.querySelectorAll("#habit-days .is-on")).map((b) => Number(b.dataset.weekday)));
+  }
+
   function openHabitDialog(habit = null) {
     const form = $("habit-form");
     form.reset();
@@ -4659,6 +4787,7 @@
       $("habit-block-minutes").value = CONFIG.habit.blocks.defaultMinutes;
       $("habit-target-blocks").value = CONFIG.habit.blocks.defaultTarget;
     }
+    renderDaysPicker(habit ? normalizeDays(habit.days) : ALL_DAYS);
     updateHabitColorUI($("habit-color").value);
     updateHabitModeUI();
     if (!dialog.open) dialog.showModal();
@@ -4679,6 +4808,7 @@
     const targetBlocks = clampInt($("habit-target-blocks").value, 1, CONFIG.habit.blocks.maxTarget, CONFIG.habit.blocks.defaultTarget);
     const color = safeColor($("habit-color").value);
     const emoji = ($("habit-emoji").value || "🎯").trim().slice(0, 8) || "🎯";
+    const days = readDaysPicker();
     const id = $("habit-id").value;
 
     if (id) {
@@ -4691,6 +4821,7 @@
       habit.mode = mode;
       habit.blockMinutes = blockMinutes;
       habit.targetBlocks = targetBlocks;
+      habit.days = days;
       if (mode === "blocks") {
         if (!habit.blocks) habit.blocks = {};
         // Al convertir un hábito simple a bloques, los días ya hechos
@@ -4740,6 +4871,7 @@
         mode,
         blockMinutes,
         targetBlocks,
+        days,
         blocks: {},
         history: {},
         isDemo: false
@@ -5453,6 +5585,16 @@
     $("task-form").addEventListener("submit", saveTask);
     $("habit-color").addEventListener("input", (event) => updateHabitColorUI(event.target.value));
     $("habit-mode").addEventListener("change", updateHabitModeUI);
+    $("habit-dialog").addEventListener("click", (event) => {
+      const day = event.target.closest("[data-weekday]");
+      if (day) {
+        day.classList.toggle("is-on");
+        day.setAttribute("aria-pressed", day.classList.contains("is-on"));
+        return;
+      }
+      const preset = event.target.closest("[data-days-preset]");
+      if (preset) renderDaysPicker(preset.dataset.daysPreset === "weekdays" ? [1, 2, 3, 4, 5] : ALL_DAYS);
+    });
     $("habit-block-minutes").addEventListener("input", updateHabitModeUI);
     $("habit-target-blocks").addEventListener("input", updateHabitModeUI);
     $("import-file").addEventListener("change", (event) => {
