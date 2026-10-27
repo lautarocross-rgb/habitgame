@@ -1201,6 +1201,12 @@
       -webkit-tap-highlight-color: transparent;
     }
     button.qrow:active { transform: scale(0.985); }
+    .qwrap { display: flex; gap: 8px; align-items: stretch; }
+    .qwrap > .qrow { flex: 1; min-width: 0; }
+    .q-cross { flex: 0 0 auto; width: 52px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface-2); color: var(--muted); font-size: 20px; font-weight: 900; }
+    .q-cross.is-on { background: rgba(255, 92, 108, 0.85); border-color: transparent; color: #2a050a; }
+    .qrow.is-missed { border-color: rgba(255, 92, 108, 0.5); background: rgba(255, 92, 108, 0.1); }
+    .qrow.is-missed .q-check { border-color: rgba(255, 92, 108, 0.8); color: rgba(255, 92, 108, 0.95); }
     .qrow.is-done { border-color: rgba(56, 232, 160, 0.34); background: rgba(56, 232, 160, 0.09); }
     .qrow.is-locked { opacity: 0.62; }
     .q-emoji { width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 13px; background: color-mix(in srgb, var(--habit) 20%, transparent); font-size: 22px; }
@@ -2430,7 +2436,7 @@
           pointsByMonth[mk] = (pointsByMonth[mk] || 0) + dayTotal;
           totalPoints += dayTotal;
           if (runHadRisk) riskRecovered = true;
-        } else if (isToday) {
+        } else if (isToday && status !== "failed") {
           record.status = "pending";
           if (isPartial) {
             // Los puntos parciales usan la consistencia previa al día:
@@ -3034,6 +3040,10 @@
     else if (paused) note = "En pausa";
     else if (!editable) note = done ? "Hecho" : "Sin marcar · fuera del rango de corrección";
     const optional = !done && !isRequiredDay(habit, key);
+    const missed = !done && !paused && (status === "failed" || (key < today && !optional));
+    const wrapCross = (inner) => editable
+      ? `<div class="qwrap">${inner}<button class="q-cross${status === "failed" ? " is-on" : ""}" type="button" data-action="fail-day" data-id="${id}" data-date="${key}" aria-pressed="${status === "failed"}" aria-label="${status === "failed" ? "Quitar la cruz de" : "Marcar como no hecho"} ${escapeAttr(habit.name)}" title="Marcar como no hecho">✕</button></div>`
+      : inner;
     const wt = weeklyTargetOf(habit);
     if (wt < 7) note = `${optional ? "Extra · podés sumar más" : "🔥 " + streak} · ${weekDoneCount(habit, key)}/${wt} esta semana`;
 
@@ -3042,22 +3052,22 @@
       const completed = done ? block.target : block.completed;
       const pills = Array.from({ length: block.target }, (_, index) =>
         `<span class="q-pill${index < completed ? " is-done" : ""}"></span>`).join("");
-      const html = `
-        <div class="qrow qrow-blocks${done ? " is-done" : ""}${editable ? "" : " is-locked"}" style="${style}">
+      const html = wrapCross(`
+        <div class="qrow qrow-blocks${done ? " is-done" : ""}${missed ? " is-missed" : ""}${editable ? "" : " is-locked"}" style="${style}">
           ${emoji}
           <span class="q-main"><strong>${name}</strong><small>${completed}/${block.target} bloques · ${completed * block.minutes}/${block.target * block.minutes} min${editable ? ` · 🔥 ${streak}` : ""}</small><span class="q-pills">${pills}</span></span>
           ${points > 0 ? `<span class="q-pts">+${formatNumber(points)}</span>` : ""}
           ${editable ? `
             <button class="q-step" type="button" data-action="remove-block" data-id="${id}" data-date="${key}" aria-label="Quitar un bloque de ${escapeAttr(habit.name)}" ${completed > 0 ? "" : "disabled"}>−</button>
             <button class="q-step q-plus" type="button" data-action="log-block" data-id="${id}" data-date="${key}" aria-label="Registrar un bloque de ${escapeAttr(habit.name)}" ${done ? "disabled" : ""}>＋</button>` : ""}
-        </div>`;
+        </div>`);
       return { html, done, editable, optional };
     }
 
     if (!editable) {
       const icon = beforeCreation ? "·" : (paused ? "⏸" : (done ? "✓" : "✕"));
       const html = `
-        <div class="qrow is-locked${done ? " is-done" : ""}" style="${style}">
+        <div class="qrow is-locked${done ? " is-done" : ""}${missed ? " is-missed" : ""}" style="${style}">
           ${emoji}
           <span class="q-main"><strong>${name}</strong><small>${note}</small></span>
           <span class="q-check">${icon}</span>
@@ -3065,13 +3075,13 @@
       return { html, done, editable, optional };
     }
 
-    const html = `
-      <button class="qrow${done ? " is-done" : ""}" type="button" style="${style}" data-action="toggle-day" data-id="${id}" data-date="${key}" aria-pressed="${done}" aria-label="${done ? "Desmarcar" : "Marcar"} ${escapeAttr(habit.name)}">
+    const html = wrapCross(`
+      <button class="qrow${done ? " is-done" : ""}${missed ? " is-missed" : ""}" type="button" style="${style}" data-action="toggle-day" data-id="${id}" data-date="${key}" aria-pressed="${done}" aria-label="${done ? "Desmarcar" : "Marcar"} ${escapeAttr(habit.name)}">
         ${emoji}
         <span class="q-main"><strong>${name}</strong><small>${note}</small></span>
         ${points > 0 ? `<span class="q-pts${done ? "" : " is-preview"}">+${formatNumber(points)}</span>` : ""}
         <span class="q-check">${done ? "✓" : ""}</span>
-      </button>`;
+      </button>`);
     return { html, done, editable, optional };
   }
 
@@ -4069,6 +4079,7 @@
       habit.createdAt <= today &&
       isRequiredDay(habit, today) &&
       habit.history[today] !== "done" &&
+      habit.history[today] !== "failed" &&
       habit.history[today] !== "paused"
     ).length;
     return { habits, tasks: getSortedActiveTasks() };
@@ -5085,6 +5096,31 @@
     }
   }
 
+  /* La cruz: marcar el día como no hecho (rojo). Tocarla de nuevo la quita. */
+  function failHabitDay(id, date) {
+    const habit = state.habits.find((item) => item.id === id);
+    if (!habit || habit.archived) return;
+    const today = todayKey();
+    if (!isEditableDate(date) || date > today) return;
+    extendHabitStart(habit, date);
+    const current = habit.history[date];
+    if (current === "paused") return;
+    if (current === "failed" && date < today) {
+      toast("ℹ️", "Ya está en rojo", "Los días pasados sin hacer quedan en rojo. Si lo hiciste, tocá el hábito para marcarlo como hecho.", "info");
+      return;
+    }
+    if (current === "failed") {
+      delete habit.history[date];
+    } else {
+      habit.history[date] = "failed";
+      if (habit.blocks && habit.blocks[date]) delete habit.blocks[date];
+    }
+    invalidateAnalysis();
+    refresh();
+    toast(current === "failed" ? "↩️" : "✕", current === "failed" ? "Cruz quitada" : "Marcado como no hecho",
+      current === "failed" ? habit.name : `${habit.name}: ${date === today ? "hoy" : "ese día"} quedó en rojo. Podés cambiarlo cuando quieras.`, "warning");
+  }
+
   function getBlockState(habit, date) {
     const target = Math.max(1, habit.targetBlocks || CONFIG.habit.blocks.defaultTarget);
     const minutes = habit.blockMinutes || CONFIG.habit.blocks.defaultMinutes;
@@ -5645,6 +5681,9 @@
         break;
       case "import":
         $("import-file").click();
+        break;
+      case "fail-day":
+        failHabitDay(id, target.dataset.date);
         break;
       case "backup-load":
         void loadBackups();
