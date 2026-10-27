@@ -2,6 +2,14 @@
 <html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8">
+  <script>
+    try {
+      var s = JSON.parse(localStorage.getItem("racha-sync-v1") || "{}");
+      if (!(s && s.code && s.user)) document.documentElement.classList.add("needs-login");
+    } catch (e) {
+      document.documentElement.classList.add("needs-login");
+    }
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#070a12">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iIzdjNWNmZiIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzM4ZThhMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE2IiBmaWxsPSIjMGIxMDIwIi8+PHBhdGggZD0iTTMyIDhjMiA5LTcgMTItNyAyMSAwIDYgNCAxMSA5IDExczktNCA5LTEwYzAtNC0yLTgtNS0xMSAwIDUtMiA3LTQgOCAyLTcgMS0xMy0yLTE5eiIgZmlsbD0idXJsKCNnKSIvPjwvc3ZnPg==">
@@ -1125,6 +1133,39 @@
 
     .sync-status.is-ok::before { content: "● "; color: var(--accent-2); }
 
+    /* ---------- Pantalla de inicio de sesión ---------- */
+    .auth-screen { display: none; }
+    html.needs-login .auth-screen {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: max(20px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    }
+    html.needs-login .topbar, html.needs-login .app { display: none; }
+    .gate-card {
+      width: 100%;
+      max-width: 420px;
+      padding: 28px 22px 22px;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background: linear-gradient(160deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)), var(--surface-solid);
+      box-shadow: var(--shadow);
+      animation: fadeIn 0.3s ease;
+    }
+    .gate-brand { display: flex; align-items: center; justify-content: center; gap: 11px; margin-bottom: 22px; }
+    .gate-brand .brand-mark { width: 48px; height: 48px; font-size: 25px; border-radius: 16px; }
+    .gate-brand .brand-name { font-size: 28px; }
+    .gate-card h1 { font-size: 26px; text-align: center; }
+    .gate-sub { margin: 8px 0 20px; color: var(--muted); font-size: 14px; line-height: 1.5; text-align: center; }
+    .gate-form { display: grid; gap: 12px; }
+    .gate-form .field { margin-top: 0; }
+    .gate-form .btn { width: 100%; min-height: 52px; font-size: 15px; margin-top: 4px; }
+    .gate-error { margin-top: 12px; }
+    .gate-switch { margin-top: 16px; text-align: center; color: var(--muted); font-size: 13.5px; }
+    .gate-switch .link-btn { font-size: 13.5px; }
+    .gate-note { margin-top: 14px; color: var(--faint); font-size: 11.5px; line-height: 1.5; text-align: center; }
+
     /* ---------- Cuenta (login) ---------- */
     .auth-form { display: grid; gap: 10px; }
     .auth-form .field { margin-top: 0; }
@@ -1268,6 +1309,8 @@
   <canvas id="confetti-canvas" aria-hidden="true"></canvas>
   <div id="toast-layer" class="toast-layer" aria-live="polite" aria-atomic="false"></div>
   <div id="float-layer" class="float-layer" aria-hidden="true"></div>
+
+  <div class="auth-screen" id="auth-screen"></div>
 
   <!-- Resumen siempre visible -->
   <header class="topbar">
@@ -1726,6 +1769,7 @@
   let syncDialogOpen = false;
   let authDraft = "";
   let authBusy = false;
+  let gateKey = "";
   let syncAgain = false;
   let authError = "";
 
@@ -3293,7 +3337,60 @@
     }
   }
 
+  /* Pantalla de inicio de sesión: se muestra mientras no haya una cuenta conectada. */
+  function renderAuthGate() {
+    const sync = loadSyncState();
+    const locked = authBusy || !(sync.code && sync.user);
+    document.documentElement.classList.toggle("needs-login", locked);
+    const el = $("auth-screen");
+    if (!el) return;
+    if (!locked) {
+      gateKey = "";
+      return;
+    }
+    const register = ui.authMode === "register";
+    const key = `${register}|${authBusy}`;
+    if (key === gateKey && el.firstElementChild) {
+      const errorEl = $("gate-error");
+      if (errorEl) {
+        errorEl.textContent = authError;
+        errorEl.classList.toggle("hidden", !authError);
+      }
+      return;
+    }
+    gateKey = key;
+    const busy = authBusy;
+    el.innerHTML = `
+      <div class="gate-card">
+        <div class="gate-brand">
+          <span class="brand-mark" aria-hidden="true">🔥</span>
+          <span class="brand-name">racha<span>.</span></span>
+        </div>
+        <h1>${register ? "Creá tu cuenta" : "Iniciá sesión"}</h1>
+        <p class="gate-sub">${register
+          ? "Un usuario y una contraseña. Tus hábitos y tareas se guardan en tu cuenta y se actualizan solos en todos tus dispositivos."
+          : "Entrá con tu cuenta para ver tus hábitos, tareas y progreso en cualquier dispositivo."}</p>
+        <form class="gate-form" id="gate-form" novalidate>
+          <label class="field">
+            <span>Usuario</span>
+            <input type="text" id="gate-username" name="username" value="${escapeAttr(authDraft)}" placeholder="tu_usuario" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="32" ${busy ? "disabled" : ""}>
+          </label>
+          <label class="field">
+            <span>Contraseña</span>
+            <input type="password" id="gate-password" name="password" placeholder="${register ? "Mínimo 8 caracteres" : "Tu contraseña"}" autocomplete="${register ? "new-password" : "current-password"}" maxlength="128" ${busy ? "disabled" : ""}>
+          </label>
+          <button class="btn btn-primary" type="submit" ${busy ? "disabled" : ""}>${busy ? "Entrando…" : (register ? "Crear cuenta" : "Entrar")}</button>
+        </form>
+        <p class="sync-status is-error gate-error ${authError ? "" : "hidden"}" id="gate-error" role="alert">${escapeHtml(authError)}</p>
+        <p class="gate-switch">${register ? "¿Ya tenés cuenta?" : "¿Todavía no tenés cuenta?"}
+          <button class="link-btn" type="button" data-action="toggle-auth-mode" ${busy ? "disabled" : ""}>${register ? "Iniciar sesión" : "Crear una cuenta"}</button>
+        </p>
+        ${register ? '<p class="gate-note">No hay recuperación de contraseña por mail: elegí una que recuerdes.</p>' : ""}
+      </div>`;
+  }
+
   function renderSyncCard() {
+    renderAuthGate();
     const card = $("sync-card");
     if (!card) return;
     const sync = loadSyncState();
@@ -3330,24 +3427,7 @@
       <p class="data-note">Todo se guarda y se actualiza solo: lo que hagas acá aparece en tus otros dispositivos en unos segundos, y viceversa. Entrá con el mismo usuario y contraseña en la compu y en el móvil.</p>`;
 
     const disconnectedBody = `
-      <form class="auth-form" id="auth-form" novalidate>
-        <label class="field">
-          <span>Usuario</span>
-          <input type="text" id="auth-username" name="username" value="${escapeAttr(authDraft)}" placeholder="tu_usuario" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="32" ${busy ? "disabled" : ""}>
-        </label>
-        <label class="field">
-          <span>Contraseña</span>
-          <input type="password" id="auth-password" name="password" placeholder="${register ? "Mínimo 8 caracteres" : "Tu contraseña"}" autocomplete="${register ? "new-password" : "current-password"}" maxlength="128" ${busy ? "disabled" : ""}>
-        </label>
-        <div class="auth-actions">
-          <button class="btn btn-primary" type="submit" ${busy ? "disabled" : ""}>${busy ? "Conectando…" : (register ? "Crear cuenta" : "Iniciar sesión")}</button>
-          <button class="link-btn" type="button" data-action="toggle-auth-mode" ${busy ? "disabled" : ""}>${register ? "Ya tengo cuenta" : "Crear una cuenta"}</button>
-        </div>
-      </form>
-      <p class="sync-status ${statusClass}" aria-live="polite">${escapeHtml(statusText)}</p>
-      <p class="data-note">${register
-        ? "Elegí un usuario y una contraseña que recuerdes: no hay recuperación por mail. Los datos de este dispositivo pasan a tu cuenta nueva."
-        : "Usá el mismo usuario y contraseña en todos tus dispositivos. Los datos se combinan solos: no se pierde nada."}</p>`;
+      <p class="sync-status ${statusClass}" aria-live="polite">${escapeHtml(statusText)}</p>`;
 
     card.innerHTML = `
       <div class="app-card-top">
@@ -4015,8 +4095,8 @@
   async function submitAuth() {
     if (authBusy) return;
     const register = ui.authMode === "register";
-    const userInput = $("auth-username");
-    const passInput = $("auth-password");
+    const userInput = $("gate-username");
+    const passInput = $("gate-password");
     const username = String(userInput ? userInput.value : "").trim().toLowerCase();
     const password = String(passInput ? passInput.value : "");
     authDraft = username;
@@ -4046,7 +4126,6 @@
       return;
     }
     authDraft = "";
-    authBusy = false;
 
     const sync = defaultSyncState();
     sync.code = session.token;
@@ -4055,7 +4134,12 @@
     saveSyncState(sync);
     renderSyncCard();
     toast("☁️", register ? "Cuenta creada" : "Sesión iniciada", "Tus datos se sincronizan solos en todos tus dispositivos.", "success");
-    await syncNow();
+    try {
+      await syncNow();
+    } finally {
+      authBusy = false;
+      renderSyncCard();
+    }
   }
 
   async function disconnectSync() {
@@ -4959,14 +5043,14 @@
       if (event.target.id === "reminder-toggle") void setReminderEnabled(event.target.checked);
       if (event.target.id === "reminder-time") setReminderTime(event.target.value);
     });
-    $("sync-card").addEventListener("submit", (event) => {
-      if (event.target.id === "auth-form") {
+    document.addEventListener("submit", (event) => {
+      if (event.target.id === "gate-form") {
         event.preventDefault();
         void submitAuth();
       }
     });
-    $("sync-card").addEventListener("input", (event) => {
-      if (event.target.id === "auth-username") authDraft = event.target.value;
+    document.addEventListener("input", (event) => {
+      if (event.target.id === "gate-username") authDraft = event.target.value;
     });
 
     document.addEventListener("click", handleActionClick);
