@@ -12,11 +12,8 @@ Corre en Cloudflare Workers (assets estáticos + API) con base D1.
 
 ## Despliegue automático
 
-Cada push a `main` despliega con GitHub Actions (`.github/workflows/deploy.yml`).
-Hay que cargar dos secretos en GitHub (Settings → Secrets and variables → Actions):
-
-- `CLOUDFLARE_API_TOKEN`: token con la plantilla "Edit Cloudflare Workers" y permiso de edición sobre D1.
-- `CLOUDFLARE_ACCOUNT_ID`: el ID de tu cuenta de Cloudflare.
+El repo está conectado a Cloudflare (Workers Builds): cada push a `main` construye y despliega
+el Worker `habitgame`. El nombre en `wrangler.toml` tiene que coincidir con el del Worker en Cloudflare.
 
 ## Desarrollo local
 
