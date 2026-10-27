@@ -1133,6 +1133,122 @@
 
     .sync-status.is-ok::before { content: "● "; color: var(--accent-2); }
 
+
+    .reminder-row { flex-wrap: wrap; }
+    .reminder-row .field { min-width: 120px; }
+
+    /* ---------- Panel de días y lista rápida ---------- */
+    .day-panel {
+      margin-bottom: 16px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background: var(--surface);
+    }
+    .day-nav { display: flex; align-items: center; gap: 10px; }
+    .day-title { flex: 1; min-width: 0; text-align: center; }
+    .day-title strong { display: block; font-size: 20px; letter-spacing: -0.03em; }
+    .day-title span { display: block; margin-top: 2px; color: var(--muted); font-size: 12.5px; }
+    .day-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin: 12px 0 10px; }
+    .day-chip {
+      min-height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 4px 0;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      color: var(--muted);
+      transition: 0.15s ease;
+    }
+    .day-chip small { font-size: 10.5px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+    .day-chip strong { font-size: 17px; font-variant-numeric: tabular-nums; color: var(--text); }
+    .day-chip .day-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border-strong); }
+    .day-chip.state-done .day-dot { background: var(--accent-2); border-color: var(--accent-2); }
+    .day-chip.state-some .day-dot { background: var(--yellow); border-color: var(--yellow); }
+    .day-chip.state-none .day-dot { background: var(--red); border-color: var(--red); }
+    .day-chip.is-today small { color: var(--accent-2); }
+    .day-chip.is-selected { border-color: transparent; background: linear-gradient(160deg, var(--accent), #5b8cff); color: #fff; box-shadow: 0 8px 22px rgba(124, 92, 255, 0.32); }
+    .day-chip.is-selected strong, .day-chip.is-selected small { color: #fff; }
+    .day-chip.is-selected .day-dot { border-color: rgba(255,255,255,0.85); }
+    .day-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .day-picker { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .day-picker input { min-height: 40px; padding: 0 10px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-2); color: var(--text); color-scheme: inherit; }
+    .day-summary { margin-bottom: 12px; }
+    .day-summary-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+    .day-summary-top strong { font-size: 15px; }
+    .day-summary-top span { color: var(--accent-2); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .day-allclear { margin: 0 0 10px; padding: 10px 12px; border: 1px solid rgba(56, 232, 160, 0.25); border-radius: 12px; background: rgba(56, 232, 160, 0.08); color: var(--accent-2); font-size: 13.5px; font-weight: 700; text-align: center; }
+    .qlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 8px; }
+    .q-group-title { margin: 14px 0 8px; color: var(--faint); font-size: 11px; font-weight: 850; letter-spacing: 0.1em; text-transform: uppercase; }
+    .qrow {
+      width: 100%;
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 1px solid color-mix(in srgb, var(--habit) 34%, var(--border));
+      border-radius: 18px;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--habit) 14%, transparent), transparent 70%), var(--surface);
+      color: var(--text);
+      text-align: left;
+      transition: transform 0.12s ease, background 0.2s ease, border-color 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button.qrow:active { transform: scale(0.985); }
+    .qrow.is-done { border-color: rgba(56, 232, 160, 0.34); background: rgba(56, 232, 160, 0.09); }
+    .qrow.is-locked { opacity: 0.62; }
+    .q-emoji { width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 13px; background: color-mix(in srgb, var(--habit) 20%, transparent); font-size: 22px; }
+    .q-main { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+    .q-main strong { overflow: hidden; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+    .q-main small { color: var(--muted); font-size: 12px; }
+    .q-pts { color: var(--accent-2); font-size: 13.5px; font-weight: 850; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .q-pts.is-preview { color: var(--faint); font-weight: 700; }
+    .q-check { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; border: 2px solid color-mix(in srgb, var(--habit) 75%, transparent); border-radius: 50%; color: transparent; font-size: 18px; font-weight: 900; }
+    .qrow.is-done .q-check { border-color: var(--accent-2); background: var(--accent-2); color: #042316; }
+    .qrow.is-locked .q-check { border-color: var(--border-strong); color: var(--muted); }
+    .q-pills { display: flex; gap: 4px; margin-top: 2px; }
+    .q-pill { flex: 0 1 26px; height: 8px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--border); }
+    .q-pill.is-done { background: var(--habit); border-color: var(--habit); }
+    .q-step { width: 46px; height: 46px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--surface-2); color: var(--text); font-size: 22px; font-weight: 800; line-height: 1; }
+    .q-step.q-plus { border-color: transparent; background: color-mix(in srgb, var(--habit) 70%, #000 0%); color: #fff; }
+    .qrow.is-done .q-step.q-plus { background: var(--surface-2); color: var(--muted); }
+    .detail-toggle {
+      width: 100%;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 0 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 13.5px;
+      font-weight: 800;
+      text-align: left;
+    }
+    .detail-toggle:hover { color: var(--text); border-color: var(--border-strong); }
+    .detail-toggle .chevron { color: var(--faint); }
+    @media (max-width: 759px) {
+      #panel-habits .section-head { flex-wrap: nowrap; align-items: center; margin-bottom: 12px; }
+      #panel-habits .section-head p, #panel-habits .section-head .eyebrow { display: none; }
+      #panel-habits .section-head h1 { font-size: 23px; }
+      #panel-habits .section-head > .btn { width: auto; min-height: 44px; flex: 0 0 auto; padding: 0 14px; }
+      .day-panel { padding: 12px; border-radius: 20px; }
+      .day-chip { min-height: 62px; }
+      .day-tools .btn { min-height: 44px; }
+      .day-picker span { display: none; }
+      .qrow { min-height: 72px; padding: 10px 12px; }
+      .q-check { width: 44px; height: 44px; }
+    }
+
     /* ---------- Pantalla de inicio de sesión ---------- */
     .auth-screen { display: none; }
     html.needs-login .auth-screen {
@@ -1361,16 +1477,19 @@
           <div>
             <span class="eyebrow">Constancia &gt; intensidad</span>
             <h1>Tracker de hábitos</h1>
-            <p>Marcá hoy, corregí ayer. La racha aguanta hasta 2 fallos seguidos; al tercero, se reinicia.</p>
+            <p>Marcá hoy y corregí hasta 7 días atrás. La racha aguanta hasta 2 fallos seguidos; al tercero, se reinicia.</p>
           </div>
           <button class="btn btn-primary" type="button" data-action="new-habit">＋ Nuevo hábito</button>
         </div>
+
+        <div class="day-panel" id="day-panel"></div>
 
         <details class="rules-card">
           <summary>¿Cómo se calculan los puntos?</summary>
           <div class="rules-content" id="rules-content"></div>
         </details>
 
+        <div id="detail-head"></div>
         <div class="habits-grid" id="habits-grid"></div>
         <div class="empty-state hidden" id="habits-empty"></div>
         <div id="archived-wrap"></div>
@@ -1413,12 +1532,11 @@
         <article class="panel-card achievements-card" id="achievements-card"></article>
         <article class="panel-card app-card" id="app-card"></article>
         <article class="panel-card sync-card" id="sync-card"></article>
-        <article class="panel-card data-card" id="data-card"></article>
       </div>
     </section>
 
     <footer class="footer">
-      <strong>Racha</strong> · Tus datos viven en este dispositivo. Exportá un JSON o conectá la nube para tener otra copia.
+      <strong>Racha</strong> · Tus datos se guardan en tu cuenta y en este dispositivo.
     </footer>
   </div>
 
@@ -1570,7 +1688,7 @@
       defaultPoints: 10,
       maxConsecutiveFails: 2,
       consistencyWindow: 7,
-      editablePastDays: 1,
+      editablePastDays: 7,
       streakTiers: [
         { min: 1,  multiplier: 1   },
         { min: 3,  multiplier: 1.5 },
@@ -1618,7 +1736,8 @@
 
     pwa: {
       serviceWorkerPath: "./sw.js",
-      reminderDefaultTime: "20:00",
+      reminderMorningTime: "08:00",
+      reminderEveningTime: "21:00",
       reminderCheckInterval: 60000
     },
 
@@ -1793,8 +1912,10 @@
       theme: "dark",
       reminder: {
         enabled: false,
-        time: CONFIG.pwa.reminderDefaultTime,
-        lastShown: null
+        morningTime: CONFIG.pwa.reminderMorningTime,
+        eveningTime: CONFIG.pwa.reminderEveningTime,
+        lastMorning: null,
+        lastEvening: null
       }
     };
   }
@@ -1820,8 +1941,12 @@
       theme: source.theme === "light" ? "light" : "dark",
       reminder: {
         enabled: Boolean(reminderSource.enabled),
-        time: isValidTime(reminderSource.time) ? reminderSource.time : defaults.reminder.time,
-        lastShown: isDateKey(reminderSource.lastShown) ? reminderSource.lastShown : null
+        morningTime: isValidTime(reminderSource.morningTime) ? reminderSource.morningTime : defaults.reminder.morningTime,
+        eveningTime: isValidTime(reminderSource.eveningTime)
+          ? reminderSource.eveningTime
+          : (isValidTime(reminderSource.time) ? reminderSource.time : defaults.reminder.eveningTime),
+        lastMorning: isDateKey(reminderSource.lastMorning) ? reminderSource.lastMorning : null,
+        lastEvening: isDateKey(reminderSource.lastEvening) ? reminderSource.lastEvening : null
       }
     };
   }
@@ -2061,7 +2186,10 @@
     completedOpen: false,
     archivedOpen: false,
     heatmapMonths: {},
-    authMode: "login"
+    authMode: "login",
+    selectedDate: todayKey(),
+    stripEnd: todayKey(),
+    detailOpen: Boolean(window.matchMedia && window.matchMedia("(min-width: 760px)").matches)
   };
   let analysisCache = new Map();
   let lastKnownDay = todayKey();
@@ -2708,7 +2836,7 @@
       <div class="rule-item"><span class="rule-icon">🏅</span><div><strong>Bonus de hito</strong><p>${milestoneText} pts extra. Se suman una vez por racha.</p></div></div>
       <div class="rule-item"><span class="rule-icon">📊</span><div><strong>Consistencia de 7 días</strong><p>${consistencyText}. Si venís intermitente, el multiplicador no crece y los puntos se reducen.</p></div></div>
       <div class="rule-item"><span class="rule-icon">🧱</span><div><strong>Hábitos por bloques</strong><p>Si configurás, por ejemplo, 3 bloques de 30 min, el día cuenta como hecho al llegar a 3/3. Los bloques parciales dan puntos proporcionales, pero no mantienen la racha.</p></div></div>
-      <div class="rule-item"><span class="rule-icon">⚠️</span><div><strong>Fallos permitidos</strong><p>Hasta ${CONFIG.habit.maxConsecutiveFails} fallos seguidos la racha se congela. Al tercero se reinicia a 0. Podés corregir hoy y ayer.</p></div></div>
+      <div class="rule-item"><span class="rule-icon">⚠️</span><div><strong>Fallos permitidos</strong><p>Hasta ${CONFIG.habit.maxConsecutiveFails} fallos seguidos la racha se congela. Al tercero se reinicia a 0. Podés corregir los últimos ${CONFIG.habit.editablePastDays} días.</p></div></div>
       <div class="rule-item"><span class="rule-icon">✅</span><div><strong>Puntos por tarea</strong><p>${taskText} pts. Si la completás cuando está en rojo, ganás +50% de rescate.</p></div></div>`;
   }
 
@@ -2718,7 +2846,10 @@
     const grid = $("habits-grid");
     const empty = $("habits-empty");
 
-    grid.innerHTML = active.map(renderHabitCard).join("");
+    renderDayPanel();
+    renderDetailHead(active.length);
+    grid.innerHTML = ui.detailOpen ? active.map(renderHabitCard).join("") : "";
+    grid.classList.toggle("hidden", !ui.detailOpen);
     if (!active.length) {
       empty.classList.remove("hidden");
       empty.innerHTML = state.habits.length
@@ -2730,6 +2861,205 @@
     }
     $("archived-wrap").innerHTML = renderArchived(archived);
     $("archived-wrap").classList.toggle("hidden", !archived.length);
+  }
+
+  /* ============================================================
+     Panel de días y lista rápida para marcar
+     ============================================================ */
+  const DAY_SHORT = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  const DAY_LONG = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+
+  function isEditableDate(key) {
+    if (!isDateKey(key)) return false;
+    const today = todayKey();
+    return key <= today && key >= addDaysKey(today, -CONFIG.habit.editablePastDays);
+  }
+
+  function earliestHabitDate() {
+    const dates = state.habits.filter((habit) => !habit.archived).map((habit) => habit.createdAt);
+    return dates.length ? dates.sort()[0] : todayKey();
+  }
+
+  function setSelectedDate(key) {
+    const today = todayKey();
+    const min = earliestHabitDate();
+    if (!isDateKey(key)) return;
+    if (key > today) key = today;
+    if (key < min) key = min;
+    ui.selectedDate = key;
+    const start = addDaysKey(ui.stripEnd, -6);
+    if (key < start) ui.stripEnd = addDaysKey(key, 6) > today ? today : addDaysKey(key, 6);
+    else if (key > ui.stripEnd) ui.stripEnd = key;
+    if (ui.stripEnd > today) ui.stripEnd = today;
+    renderDayPanel();
+  }
+
+  function dayTitle(key) {
+    const today = todayKey();
+    if (key === today) return "Hoy";
+    if (key === addDaysKey(today, -1)) return "Ayer";
+    return capitalize(DAY_LONG[parseDateKey(key).getDay()]);
+  }
+
+  function dayStats(key, habits) {
+    let total = 0;
+    let done = 0;
+    let points = 0;
+    for (const habit of habits) {
+      if (key < habit.createdAt || habit.history[key] === "paused") continue;
+      total++;
+      if (habit.history[key] === "done") done++;
+      const record = getHabitAnalysis(habit).dayMap.get(key);
+      if (record) points += record.totalPoints || 0;
+    }
+    return { total, done, points };
+  }
+
+  function quickRow(habit, key) {
+    const analysis = getHabitAnalysis(habit);
+    const record = analysis.dayMap.get(key);
+    const status = habit.history[key];
+    const today = todayKey();
+    const isToday = key === today;
+    const isBlock = habit.mode === "blocks";
+    const done = status === "done";
+    const beforeCreation = key < habit.createdAt;
+    const paused = status === "paused";
+    const editable = isEditableDate(key) && !beforeCreation && !paused;
+    const streak = isToday
+      ? (record && record.status === "done" ? record.streak : analysis.currentStreak)
+      : (record ? record.streak : 0);
+    const preview = isToday && !done ? getPreviewToday(habit) : null;
+    const points = done ? (record ? record.totalPoints : 0) : (preview ? preview.totalPoints : 0);
+    const id = escapeAttr(habit.id);
+    const style = `--habit:${safeColor(habit.color)}`;
+    const emoji = `<span class="q-emoji" aria-hidden="true">${escapeHtml(habit.emoji)}</span>`;
+    const name = escapeHtml(habit.name);
+
+    let note = `🔥 ${streak}`;
+    if (beforeCreation) note = "Todavía no existía";
+    else if (paused) note = "En pausa";
+    else if (!editable) note = done ? "Hecho" : "Sin marcar · fuera del rango de corrección";
+
+    if (isBlock && !beforeCreation) {
+      const block = getBlockState(habit, key);
+      const completed = done ? block.target : block.completed;
+      const pills = Array.from({ length: block.target }, (_, index) =>
+        `<span class="q-pill${index < completed ? " is-done" : ""}"></span>`).join("");
+      const html = `
+        <div class="qrow qrow-blocks${done ? " is-done" : ""}${editable ? "" : " is-locked"}" style="${style}">
+          ${emoji}
+          <span class="q-main"><strong>${name}</strong><small>${completed}/${block.target} bloques · ${completed * block.minutes}/${block.target * block.minutes} min${editable ? ` · 🔥 ${streak}` : ""}</small><span class="q-pills">${pills}</span></span>
+          ${points > 0 ? `<span class="q-pts">+${formatNumber(points)}</span>` : ""}
+          ${editable ? `
+            <button class="q-step" type="button" data-action="remove-block" data-id="${id}" data-date="${key}" aria-label="Quitar un bloque de ${escapeAttr(habit.name)}" ${completed > 0 ? "" : "disabled"}>−</button>
+            <button class="q-step q-plus" type="button" data-action="log-block" data-id="${id}" data-date="${key}" aria-label="Registrar un bloque de ${escapeAttr(habit.name)}" ${done ? "disabled" : ""}>＋</button>` : ""}
+        </div>`;
+      return { html, done, editable };
+    }
+
+    if (!editable) {
+      const icon = beforeCreation ? "·" : (paused ? "⏸" : (done ? "✓" : "✕"));
+      const html = `
+        <div class="qrow is-locked${done ? " is-done" : ""}" style="${style}">
+          ${emoji}
+          <span class="q-main"><strong>${name}</strong><small>${note}</small></span>
+          <span class="q-check">${icon}</span>
+        </div>`;
+      return { html, done, editable };
+    }
+
+    const html = `
+      <button class="qrow${done ? " is-done" : ""}" type="button" style="${style}" data-action="toggle-day" data-id="${id}" data-date="${key}" aria-pressed="${done}" aria-label="${done ? "Desmarcar" : "Marcar"} ${escapeAttr(habit.name)}">
+        ${emoji}
+        <span class="q-main"><strong>${name}</strong><small>${note}</small></span>
+        ${points > 0 ? `<span class="q-pts${done ? "" : " is-preview"}">+${formatNumber(points)}</span>` : ""}
+        <span class="q-check">${done ? "✓" : ""}</span>
+      </button>`;
+    return { html, done, editable };
+  }
+
+  function renderDayPanel() {
+    const panel = $("day-panel");
+    if (!panel) return;
+    const habits = state.habits.filter((habit) => !habit.archived);
+    if (!habits.length) {
+      panel.innerHTML = "";
+      panel.classList.add("hidden");
+      return;
+    }
+    panel.classList.remove("hidden");
+
+    const today = todayKey();
+    if (!isDateKey(ui.selectedDate) || ui.selectedDate > today) ui.selectedDate = today;
+    if (!isDateKey(ui.stripEnd) || ui.stripEnd > today) ui.stripEnd = today;
+    if (ui.selectedDate > ui.stripEnd) ui.stripEnd = ui.selectedDate;
+    const key = ui.selectedDate;
+    const min = earliestHabitDate();
+    const date = parseDateKey(key);
+
+    const chips = [];
+    for (let i = 6; i >= 0; i--) {
+      const day = addDaysKey(ui.stripEnd, -i);
+      const stats = dayStats(day, habits);
+      let state_ = "empty";
+      if (stats.total > 0) {
+        if (stats.done === stats.total) state_ = "done";
+        else if (stats.done > 0) state_ = "some";
+        else state_ = day === today ? "pending" : "none";
+      }
+      const d = parseDateKey(day);
+      chips.push(`
+        <button class="day-chip state-${state_}${day === key ? " is-selected" : ""}${day === today ? " is-today" : ""}" type="button" data-action="select-day" data-date="${day}" aria-pressed="${day === key}" aria-label="${DAY_LONG[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]}: ${stats.done} de ${stats.total} hechos">
+          <small>${DAY_SHORT[d.getDay()]}</small><strong>${d.getDate()}</strong><i class="day-dot" aria-hidden="true"></i>
+        </button>`);
+    }
+
+    const stats = dayStats(key, habits);
+    const pending = [];
+    const finished = [];
+    const others = [];
+    for (const habit of habits) {
+      const row = quickRow(habit, key);
+      if (!row.editable) others.push(row.html);
+      else if (row.done) finished.push(row.html);
+      else pending.push(row.html);
+    }
+    const pct = stats.total ? Math.round((stats.done / stats.total) * 100) : 0;
+    const allDone = stats.total > 0 && stats.done === stats.total;
+
+    panel.innerHTML = `
+      <div class="day-nav">
+        <button class="icon-btn" type="button" data-action="day-prev" aria-label="Día anterior" ${key <= min ? "disabled" : ""}>‹</button>
+        <div class="day-title"><strong>${dayTitle(key)}</strong><span>${DAY_LONG[date.getDay()]} ${date.getDate()} de ${MONTHS[date.getMonth()]}</span></div>
+        <button class="icon-btn" type="button" data-action="day-next" aria-label="Día siguiente" ${key >= today ? "disabled" : ""}>›</button>
+      </div>
+      <div class="day-strip" role="group" aria-label="Elegir día">${chips.join("")}</div>
+      <div class="day-tools">
+        <button class="btn btn-small" type="button" data-action="day-today" ${key === today ? "disabled" : ""}>Volver a hoy</button>
+        <label class="day-picker"><span>📅 Ir a fecha</span><input type="date" id="day-picker" value="${key}" min="${min}" max="${today}"></label>
+      </div>
+      <div class="day-summary">
+        <div class="day-summary-top"><strong>${stats.done} de ${stats.total} hechos</strong><span>${stats.points > 0 ? `+${formatNumber(stats.points)} pts` : "—"}</span></div>
+        <div class="big-track"><i style="width:${pct}%"></i></div>
+      </div>
+      ${allDone ? '<p class="day-allclear">🎉 ¡Todo marcado para este día!</p>' : ""}
+      <div class="qlist">${pending.join("")}</div>
+      ${finished.length ? `<p class="q-group-title">Hechos (${finished.length})</p><div class="qlist">${finished.join("")}</div>` : ""}
+      ${others.length ? `<p class="q-group-title">Sin acción</p><div class="qlist">${others.join("")}</div>` : ""}`;
+  }
+
+  function renderDetailHead(count) {
+    const el = $("detail-head");
+    if (!el) return;
+    if (!count) {
+      el.innerHTML = "";
+      return;
+    }
+    el.innerHTML = `
+      <button class="detail-toggle" type="button" data-action="toggle-detail" aria-expanded="${ui.detailOpen}">
+        <span>📊 Detalle y estadísticas (${count})</span><span class="chevron">${ui.detailOpen ? "▾" : "▸"}</span>
+      </button>`;
   }
 
   function renderHabitCard(habit) {
@@ -2939,7 +3269,7 @@
       const blockDay = isBlockHabit ? (habit.blocks?.[key] || null) : null;
       const blocksCompleted = blockDay ? Math.min(blockTarget, Math.max(0, Number(blockDay.completed) || 0)) : 0;
       const isPartial = isBlockHabit && status !== "done" && status !== "paused" && blocksCompleted > 0 && blocksCompleted < blockTarget;
-      const canEdit = !habit.archived && !isBlockHabit && (key === today || key === yesterday) && key >= habit.createdAt && key <= today && status !== "paused";
+      const canEdit = !habit.archived && !isBlockHabit && isEditableDate(key) && key >= habit.createdAt && status !== "paused";
       const record = analysis.dayMap.get(key);
 
       let cls = "heat-cell";
@@ -3140,7 +3470,6 @@
     renderAchievementsCard();
     renderAppCard();
     renderSyncCard();
-    renderDataCard();
   }
 
   function renderGoalCard() {
@@ -3252,20 +3581,6 @@
       <div class="achievements-grid">${badges}</div>`;
   }
 
-  function renderDataCard() {
-    const demoActive = state.habits.some((habit) => habit.isDemo) || state.tasks.some((task) => task.isDemo);
-    $("data-card").innerHTML = `
-      <h3>Datos y respaldo</h3>
-      <div class="data-actions">
-        <button class="btn" type="button" data-action="export">⬇️ Exportar JSON</button>
-        <button class="btn" type="button" data-action="import">⬆️ Importar JSON</button>
-        <button class="btn" type="button" data-action="load-demo">🧪 Cargar ejemplos</button>
-        ${demoActive ? `<button class="btn btn-danger" type="button" data-action="delete-demo">🧹 Borrar ejemplos</button>` : ""}
-        <button class="btn btn-danger" type="button" data-action="delete-all">🗑 Borrar todo</button>
-      </div>
-      <p class="data-note">Tus datos viven en el localStorage de este navegador. Exportá un JSON de vez en cuando o conectá la nube para tener otra copia.</p>`;
-  }
-
   function renderAppCard() {
     const card = $("app-card");
     if (!card) return;
@@ -3288,8 +3603,8 @@
         ? "Offline no disponible"
         : (secure ? "Preparando offline…" : "Offline no disponible");
     const reminderText = reminder.enabled
-      ? `Activo a las ${reminder.time} · ${permissionLabel}`
-      : "Un aviso para no perder la racha.";
+      ? `☀️ ${reminder.morningTime} y 🌙 ${reminder.eveningTime} · ${permissionLabel}`
+      : "Tareas pendientes a la mañana y las que no completaste a la noche.";
     card.innerHTML = `
       <div class="app-card-top">
         <h3>App y recordatorios</h3>
@@ -3309,7 +3624,7 @@
         <div class="app-block">
           <span class="app-icon" aria-hidden="true">🔔</span>
           <div class="app-copy">
-            <strong>Recordatorio diario</strong>
+            <strong>Resumen diario</strong>
             <p>${reminderText}</p>
           </div>
           <label class="switch" title="${reminder.enabled ? "Desactivar recordatorio" : "Activar recordatorio"}">
@@ -3319,11 +3634,12 @@
         </div>
       </div>
       <div class="reminder-row ${reminder.enabled ? "" : "hidden"}" id="reminder-settings">
-        <label class="field inline-field"><span>Hora del aviso</span><input type="time" id="reminder-time" value="${escapeAttr(reminder.time)}" aria-label="Hora del recordatorio"></label>
+        <label class="field inline-field"><span>☀️ Mañana</span><input type="time" id="reminder-morning" value="${escapeAttr(reminder.morningTime)}" aria-label="Hora del aviso de la mañana"></label>
+        <label class="field inline-field"><span>🌙 Noche</span><input type="time" id="reminder-evening" value="${escapeAttr(reminder.eveningTime)}" aria-label="Hora del aviso de la noche"></label>
         <button class="btn" type="button" data-action="test-notification">Probar aviso</button>
       </div>
       <p class="data-note">${secure
-        ? "Los avisos aparecen con la app abierta o al volver a ella. El service worker deja la app lista para usar offline."
+        ? "A la mañana te avisa qué tareas tenés pendientes; a la noche, cuáles no completaste. Salen a la hora elegida si la app está abierta, o apenas la abrís después de esa hora."
         : "Para instalar y recibir avisos, abrí la app desde localhost o HTTPS. Con file:// todo funciona, pero el navegador bloquea la PWA y las notificaciones."}</p>
       <p class="data-note app-status-line">${swStatus}</p>`;
   }
@@ -3505,36 +3821,51 @@
     return Notification.requestPermission();
   }
 
-  function reminderCounts() {
+  function pendingSummary() {
     const today = todayKey();
-    const pendingHabits = state.habits.filter((habit) =>
+    const habits = state.habits.filter((habit) =>
       !habit.archived &&
       habit.createdAt <= today &&
       habit.history[today] !== "done" &&
       habit.history[today] !== "paused"
     ).length;
-    const pendingTasks = state.tasks.filter((task) => !task.completedAt).length;
-    return { pendingHabits, pendingTasks };
+    return { habits, tasks: getSortedActiveTasks() };
   }
 
-  function reminderBody(pendingHabits, pendingTasks) {
-    if (pendingHabits === 0 && pendingTasks === 0) {
-      return "Todo al día. Un día perfecto para mantener la racha. 🔥";
+  function taskNames(entries, limit = 3) {
+    const names = entries.slice(0, limit).map((entry) => entry.task.title);
+    const extra = entries.length - names.length;
+    return names.join(", ") + (extra > 0 ? ` y ${extra} más` : "");
+  }
+
+  /* Arma el aviso de la mañana (pendientes) o de la noche (sin completar). */
+  function buildReminder(kind) {
+    const { habits, tasks } = pendingSummary();
+    if (!tasks.length && !habits) return null;
+    const red = tasks.filter((entry) => entry.metrics.level === "red").length;
+    const redText = red > 0 ? ` ${plural(red, "está en rojo", "están en rojo")}.` : "";
+
+    if (kind === "morning") {
+      const parts = [];
+      if (tasks.length) parts.push(`Tenés ${plural(tasks.length, "tarea pendiente", "tareas pendientes")}: ${taskNames(tasks)}.${redText}`);
+      if (habits) parts.push(`${tasks.length ? "Además, " : "Hoy "}${plural(habits, "hábito", "hábitos")} por marcar.`);
+      return { title: "☀️ Buen día · tus pendientes de hoy", body: parts.join(" "), tag: "racha-manana" };
     }
+
     const parts = [];
-    if (pendingHabits > 0) parts.push(`${plural(pendingHabits, "hábito", "hábitos")} por marcar`);
-    if (pendingTasks > 0) parts.push(`${plural(pendingTasks, "tarea", "tareas")} pendiente${pendingTasks === 1 ? "" : "s"}`);
-    return `Te ${pendingHabits + pendingTasks === 1 ? "queda" : "quedan"} ${parts.join(" y ")} para hoy.`;
+    if (tasks.length) parts.push(`Quedaron sin completar ${plural(tasks.length, "tarea", "tareas")}: ${taskNames(tasks)}.${redText}`);
+    if (habits) parts.push(`${tasks.length ? "Y " : "Hoy "}no marcaste ${plural(habits, "hábito", "hábitos")}. Todavía llegás a tiempo.`);
+    return { title: "🌙 Cierre del día · sin completar", body: parts.join(" "), tag: "racha-noche" };
   }
 
-  function showReminderNotification(title, body) {
+  function showReminderNotification(title, body, tag = "racha-recordatorio") {
     const options = {
       body,
       icon: "./icons/icon-192.png",
       badge: "./icons/icon-192.png",
-      tag: "racha-recordatorio",
+      tag,
       renotify: true,
-      data: { url: "./index.html" },
+      data: { url: "./index.html?tab=tasks" },
       vibrate: [120, 60, 120]
     };
     const fallback = () => {
@@ -3559,24 +3890,22 @@
       state.settings.reminder.enabled = false;
       persist();
       renderAppCard();
-      renderSyncCard();
-      toast("🔕", "Recordatorio desactivado", "Podés volver a activarlo cuando quieras.", "info");
+      toast("🔕", "Avisos desactivados", "Podés volver a activarlos cuando quieras.", "info");
       return;
     }
     const permission = await requestNotificationPermission();
     if (permission === "granted") {
-      state.settings.reminder.enabled = true;
+      const reminder = state.settings.reminder;
+      reminder.enabled = true;
       persist();
       renderAppCard();
-      renderSyncCard();
-      toast("🔔", "Recordatorio activado", `Te aviso todos los días a las ${state.settings.reminder.time}.`, "success");
+      toast("🔔", "Avisos activados", `Te aviso a las ${reminder.morningTime} y a las ${reminder.eveningTime}.`, "success");
       checkReminder();
       return;
     }
     state.settings.reminder.enabled = false;
     persist();
     renderAppCard();
-    renderSyncCard();
     if (permission === "unsupported") {
       toast("🔔", "Sin soporte", "Este navegador no soporta notificaciones.", "warning");
     } else if (permission === "insecure") {
@@ -3588,17 +3917,28 @@
     }
   }
 
-  function setReminderTime(value) {
+  function setReminderTime(slot, value) {
+    const reminder = state.settings.reminder;
     if (!isValidTime(value)) {
       renderAppCard();
       return;
     }
-    state.settings.reminder.time = value;
+    if (slot === "morning" && value >= reminder.eveningTime) {
+      toast("🕗", "Revisá las horas", "El aviso de la mañana tiene que ser antes que el de la noche.", "warning");
+      renderAppCard();
+      return;
+    }
+    if (slot === "evening" && value <= reminder.morningTime) {
+      toast("🕗", "Revisá las horas", "El aviso de la noche tiene que ser después que el de la mañana.", "warning");
+      renderAppCard();
+      return;
+    }
+    if (slot === "morning") reminder.morningTime = value;
+    else reminder.eveningTime = value;
     persist();
     renderAppCard();
-    renderSyncCard();
-    toast("🕗", "Hora actualizada", `El recordatorio queda para las ${value}.`, "info");
-    if (state.settings.reminder.enabled) checkReminder();
+    toast("🕗", "Hora actualizada", `Aviso de la ${slot === "morning" ? "mañana" : "noche"}: ${value}.`, "info");
+    if (reminder.enabled) checkReminder();
   }
 
   function sendTestNotification() {
@@ -3616,7 +3956,12 @@
         renderAppCard();
         return;
       }
-      showReminderNotification("Racha · aviso de prueba", "Así se va a ver tu recordatorio diario. 🔥");
+      const sample = buildReminder("morning");
+      showReminderNotification(
+        sample ? `Prueba · ${sample.title}` : "Racha · aviso de prueba",
+        sample ? sample.body : "Así se va a ver tu aviso. Hoy no tenés nada pendiente. 🎉",
+        "racha-prueba"
+      );
       renderAppCard();
       toast("🔔", "Aviso enviado", "Si no lo ves, revisá los permisos de notificaciones del navegador.", "info");
     });
@@ -3628,20 +3973,36 @@
     if (!("Notification" in window) || Notification.permission !== "granted") return;
     if (!pwaState.secure) return;
     const now = new Date();
-    const [hours, minutes] = reminder.time.split(":").map(Number);
-    const target = new Date(now);
-    target.setHours(hours, minutes, 0, 0);
-    if (now < target) return;
     const today = todayKey();
-    if (reminder.lastShown === today) return;
-    const { pendingHabits, pendingTasks } = reminderCounts();
-    if (pendingHabits > 0 || pendingTasks > 0) {
-      showReminderNotification("Racha · no pierdas el día", reminderBody(pendingHabits, pendingTasks));
+    const at = (time) => {
+      const [hours, minutes] = time.split(":").map(Number);
+      const target = new Date(now);
+      target.setHours(hours, minutes, 0, 0);
+      return target;
+    };
+    const morningAt = at(reminder.morningTime);
+    const eveningAt = at(reminder.eveningTime);
+    let changed = false;
+
+    if (now >= morningAt && reminder.lastMorning !== today) {
+      // El aviso de la mañana no tiene sentido si ya pasó la hora de la noche.
+      if (now < eveningAt) {
+        const message = buildReminder("morning");
+        if (message) showReminderNotification(message.title, message.body, message.tag);
+      }
+      reminder.lastMorning = today;
+      changed = true;
     }
-    reminder.lastShown = today;
-    persist();
-    renderAppCard();
-    renderSyncCard();
+    if (now >= eveningAt && reminder.lastEvening !== today) {
+      const message = buildReminder("evening");
+      if (message) showReminderNotification(message.title, message.body, message.tag);
+      reminder.lastEvening = today;
+      changed = true;
+    }
+    if (changed) {
+      persist();
+      renderAppCard();
+    }
   }
 
   function initPWA() {
@@ -3655,6 +4016,14 @@
     setTimeout(checkReminder, 1800);
     const params = new URLSearchParams(window.location.search);
     const action = params.get("action");
+    if (params.get("tab") === "tasks") {
+      setActiveTab("tasks");
+      try {
+        history.replaceState(null, "", window.location.pathname);
+      } catch (error) {
+        // En file:// algunos navegadores no permiten reescribir la URL.
+      }
+    }
     if (action === "new-habit" || action === "new-task") {
       setTimeout(() => {
         if (action === "new-habit") openHabitDialog(null);
@@ -4418,13 +4787,14 @@
     if (habit.mode === "blocks") return;
     const today = todayKey();
     const yesterday = addDaysKey(today, -1);
-    if (date !== today && date !== yesterday) return;
+    if (!isEditableDate(date)) return;
     if (date < habit.createdAt || date > today) return;
     const currentStatus = habit.history[date];
     if (currentStatus === "paused") return;
 
+    const scoreMonth = monthKeyFromDateKey(date);
     const beforeAnalysis = getHabitAnalysis(habit);
-    const beforeScore = getMonthlyScore(currentMonthKey());
+    const beforeScore = getMonthlyScore(scoreMonth);
     const beforeMilestones = new Set(beforeAnalysis.days.filter((day) => day.milestone > 0).map((day) => `${day.date}:${day.milestone}`));
 
     if (currentStatus === "done") {
@@ -4436,7 +4806,7 @@
 
     invalidateAnalysis();
     const afterAnalysis = getHabitAnalysis(habit);
-    const afterScore = getMonthlyScore(currentMonthKey());
+    const afterScore = getMonthlyScore(scoreMonth);
     const delta = afterScore - beforeScore;
     const newMilestone = afterAnalysis.days.find((day) => day.milestone > 0 && !beforeMilestones.has(`${day.date}:${day.milestone}`));
     refresh();
@@ -4455,7 +4825,7 @@
     }
 
     if (currentStatus === "done") {
-      toast("↩️", "Corrección aplicada", date === today ? "Desmarcaste hoy." : "Ayer quedó como fallado.", "warning");
+      toast("↩️", "Corrección aplicada", date === today ? "Desmarcaste hoy." : "Ese día quedó como fallado.", "warning");
     } else if (date === today) {
       if (beforeAnalysis.consecutiveFails > 0 && afterAnalysis.consecutiveFails === 0) {
         toast("🛡️", "Racha recuperada", "Volviste antes del tercer fallo. La racha sigue viva.", "success");
@@ -4463,7 +4833,7 @@
         toast("🔥", "Día marcado", `${habit.name}: +${formatNumber(delta)} pts.`, "success");
       }
     } else {
-      toast("🛠️", "Ayer corregido", `${habit.name}: +${formatNumber(delta)} pts.`, "success");
+      toast("🛠️", "Día corregido", `${habit.name}: +${formatNumber(delta)} pts.`, "success");
     }
   }
 
@@ -4483,7 +4853,7 @@
     if (!habit || habit.archived || habit.mode !== "blocks") return;
     const today = todayKey();
     const yesterday = addDaysKey(today, -1);
-    if (date !== today && date !== yesterday) return;
+    if (!isEditableDate(date)) return;
     if (date < habit.createdAt || date > today) return;
     if (habit.history[date] === "paused") return;
 
@@ -4543,7 +4913,7 @@
     if (!habit || habit.archived || habit.mode !== "blocks") return;
     const today = todayKey();
     const yesterday = addDaysKey(today, -1);
-    if (date !== today && date !== yesterday) return;
+    if (!isEditableDate(date)) return;
     if (date < habit.createdAt || date > today) return;
     if (habit.history[date] === "paused") return;
 
@@ -4923,6 +5293,23 @@
       case "new-habit":
         openHabitDialog(null);
         break;
+      case "day-prev":
+        setSelectedDate(addDaysKey(ui.selectedDate, -1));
+        break;
+      case "day-next":
+        setSelectedDate(addDaysKey(ui.selectedDate, 1));
+        break;
+      case "day-today":
+        ui.stripEnd = todayKey();
+        setSelectedDate(todayKey());
+        break;
+      case "select-day":
+        setSelectedDate(target.dataset.date);
+        break;
+      case "toggle-detail":
+        ui.detailOpen = !ui.detailOpen;
+        renderHabits();
+        break;
       case "edit-habit": {
         const habit = state.habits.find((item) => item.id === id);
         if (habit) openHabitDialog(habit);
@@ -5041,7 +5428,8 @@
     });
     $("app-card").addEventListener("change", (event) => {
       if (event.target.id === "reminder-toggle") void setReminderEnabled(event.target.checked);
-      if (event.target.id === "reminder-time") setReminderTime(event.target.value);
+      if (event.target.id === "reminder-morning") setReminderTime("morning", event.target.value);
+      if (event.target.id === "reminder-evening") setReminderTime("evening", event.target.value);
     });
     document.addEventListener("submit", (event) => {
       if (event.target.id === "gate-form") {
@@ -5051,6 +5439,9 @@
     });
     document.addEventListener("input", (event) => {
       if (event.target.id === "gate-username") authDraft = event.target.value;
+    });
+    document.addEventListener("change", (event) => {
+      if (event.target.id === "day-picker" && event.target.value) setSelectedDate(event.target.value);
     });
 
     document.addEventListener("click", handleActionClick);
@@ -5076,7 +5467,12 @@
   function checkDayChange() {
     const now = todayKey();
     if (now === lastKnownDay) return;
+    const followToday = ui.selectedDate === lastKnownDay;
     lastKnownDay = now;
+    if (followToday) {
+      ui.selectedDate = now;
+      ui.stripEnd = now;
+    }
     const changed = reconcileHabits();
     invalidateAnalysis();
     refresh();
