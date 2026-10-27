@@ -29,3 +29,15 @@ CREATE TABLE IF NOT EXISTS login_attempts (
   fails INTEGER NOT NULL,
   first_at INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS state_backups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sync_id TEXT NOT NULL,
+  data TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  habits INTEGER NOT NULL,
+  tasks INTEGER NOT NULL,
+  summary TEXT NOT NULL,
+  reason TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_backups_sync ON state_backups (sync_id, created_at);

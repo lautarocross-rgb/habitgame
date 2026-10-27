@@ -1553,6 +1553,7 @@
         <article class="panel-card achievements-card" id="achievements-card"></article>
         <article class="panel-card app-card" id="app-card"></article>
         <article class="panel-card sync-card" id="sync-card"></article>
+        <article class="panel-card backup-card" id="backup-card"></article>
       </div>
     </section>
 
@@ -3029,7 +3030,7 @@
     else if (!editable) note = done ? "Hecho" : "Sin marcar · fuera del rango de corrección";
     const optional = !done && !isRequiredDay(habit, key);
     const wt = weeklyTargetOf(habit);
-    if (wt < 7) note = `${optional ? "Descanso / extra" : "🔥 " + streak} · ${Math.min(weekDoneCount(habit, key), wt)}/${wt} esta semana`;
+    if (wt < 7) note = `${optional ? "Extra · podés sumar más" : "🔥 " + streak} · ${weekDoneCount(habit, key)}/${wt} esta semana`;
 
     if (isBlock && !beforeCreation) {
       const block = getBlockState(habit, key);
@@ -3572,6 +3573,7 @@
     renderAchievementsCard();
     renderAppCard();
     renderSyncCard();
+    renderBackupCard();
   }
 
   /* Informe: cumplimiento de los últimos 30 días por hábito (solo días obligatorios). */
@@ -3869,6 +3871,74 @@
         </p>
         ${register ? '<p class="gate-note">No hay recuperación de contraseña por mail: elegí una que recuerdes.</p>' : ""}
       </div>`;
+  }
+
+  /* Respaldos automáticos de la cuenta (guardados en la nube). */
+  let backupState = { list: null, loading: false, error: "" };
+
+  function renderBackupCard() {
+    const card = $("backup-card");
+    if (!card) return;
+    const sync = loadSyncState();
+    if (!sync.code) {
+      card.innerHTML = `<h3>Respaldos en la nube</h3><p class="chart-note">Iniciá sesión para que tu cuenta tenga respaldos automáticos.</p>`;
+      return;
+    }
+    let body = "";
+    if (backupState.loading) body = '<p class="chart-note">Cargando…</p>';
+    else if (backupState.error) body = `<p class="sync-status is-error">${escapeHtml(backupState.error)}</p>`;
+    else if (backupState.list && !backupState.list.length) body = '<p class="chart-note">Todavía no hay respaldos. Se crean solos mientras usás la app.</p>';
+    else if (backupState.list) {
+      body = `<div class="report-list">${backupState.list.map((b) => `
+        <div class="report-row">
+          <div class="report-row-top"><strong>${escapeHtml(new Date(b.createdAt).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" }))}</strong>
+            <button class="btn btn-small" type="button" data-action="backup-restore" data-id="${Number(b.id)}">Restaurar</button></div>
+          <small>${b.habits} hábitos · ${b.tasks} tareas · ${escapeHtml(b.reason)}${b.summary ? ` · ${escapeHtml(b.summary)}` : ""}</small>
+        </div>`).join("")}</div>`;
+    }
+    card.innerHTML = `
+      <h3>Respaldos en la nube</h3>
+      <p class="chart-note">Tu cuenta guarda copias automáticas de tus datos en la nube, y siempre antes de cualquier cambio que quite hábitos o tareas. Podés volver a una de ellas cuando quieras.</p>
+      ${body}
+      <div class="modal-actions" style="margin-top:12px"><button class="btn btn-small" type="button" data-action="backup-load">${backupState.list ? "Actualizar lista" : "Ver respaldos"}</button></div>`;
+  }
+
+  async function loadBackups() {
+    const sync = loadSyncState();
+    if (!sync.code) return;
+    backupState = { list: backupState.list, loading: true, error: "" };
+    renderBackupCard();
+    try {
+      const payload = await apiState("GET", sync.code, undefined, "", "/api/backups");
+      backupState = { list: Array.isArray(payload.backups) ? payload.backups : [], loading: false, error: "" };
+    } catch (error) {
+      backupState = { list: backupState.list, loading: false, error: `No se pudieron cargar los respaldos: ${syncErrorMessage(error)}` };
+    }
+    renderBackupCard();
+  }
+
+  async function restoreBackup(id) {
+    const sync = loadSyncState();
+    if (!sync.code) return;
+    const ok = await askConfirm({
+      title: "Restaurar respaldo",
+      message: "Tus datos actuales se reemplazan por los de esta copia. Antes de hacerlo se guarda un respaldo de lo que tenés ahora, así que podés volver atrás.",
+      confirmLabel: "Restaurar",
+      danger: false
+    });
+    if (!ok) return;
+    try {
+      const result = await apiState("POST", sync.code, { id }, "", "/api/restore");
+      const remote = await fetchRemote(sync.code, 0);
+      if (remote && remote.data) {
+        applyData(remote.data);
+        recordSynced(remote.updatedAt || result.updatedAt);
+      }
+      toast("♻️", "Respaldo restaurado", "Tus datos volvieron a esa copia.", "success");
+      await loadBackups();
+    } catch (error) {
+      toast("⚠️", "No se pudo restaurar", syncErrorMessage(error), "warning");
+    }
   }
 
   function renderSyncCard() {
@@ -4340,13 +4410,13 @@
     return payload;
   }
 
-  async function apiState(method, code, body, query = "") {
+  async function apiState(method, code, body, query = "", path = CONFIG.sync.endpoint) {
     const headers = {
       "Authorization": `Bearer ${code}`,
       "Accept": "application/json"
     };
     if (body !== undefined) headers["Content-Type"] = "application/json";
-    const response = await fetch(CONFIG.sync.endpoint + query, {
+    const response = await fetch(path + query, {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -5570,6 +5640,12 @@
         break;
       case "import":
         $("import-file").click();
+        break;
+      case "backup-load":
+        void loadBackups();
+        break;
+      case "backup-restore":
+        void restoreBackup(Number(target.dataset.id));
         break;
       case "load-demo":
         void loadDemo();

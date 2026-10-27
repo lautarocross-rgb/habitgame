@@ -84,7 +84,9 @@ async function ensureSchema(env) {
     env.DB.prepare("CREATE TABLE IF NOT EXISTS states (sync_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at INTEGER NOT NULL)"),
     env.DB.prepare("CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE, salt TEXT NOT NULL, pass_hash TEXT NOT NULL, iterations INTEGER NOT NULL, created_at INTEGER NOT NULL)"),
     env.DB.prepare("CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL)"),
-    env.DB.prepare("CREATE TABLE IF NOT EXISTS login_attempts (key TEXT PRIMARY KEY, fails INTEGER NOT NULL, first_at INTEGER NOT NULL)")
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS login_attempts (key TEXT PRIMARY KEY, fails INTEGER NOT NULL, first_at INTEGER NOT NULL)"),
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS state_backups (id INTEGER PRIMARY KEY AUTOINCREMENT, sync_id TEXT NOT NULL, data TEXT NOT NULL, created_at INTEGER NOT NULL, habits INTEGER NOT NULL, tasks INTEGER NOT NULL, summary TEXT NOT NULL, reason TEXT NOT NULL)"),
+    env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_backups_sync ON state_backups (sync_id, created_at)")
   ]);
   schemaReady = true;
 }
@@ -287,6 +289,101 @@ async function handleMe(request, env) {
 
 /* ---------- Estado sincronizado ---------- */
 
+/* ---------- Respaldos por cuenta ---------- */
+
+const BACKUP_MIN_INTERVAL_MS = 30 * 60 * 1000;
+const BACKUP_KEEP = 100;
+
+function describeState(raw) {
+  try {
+    const data = JSON.parse(raw);
+    const habits = Array.isArray(data.habits) ? data.habits : [];
+    const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+    const real = habits.filter((h) => !h.isDemo).length + tasks.filter((t) => !t.isDemo).length;
+    const marks = habits.reduce((n, h) => n + (h && h.history ? Object.keys(h.history).length : 0), 0);
+    return {
+      habits: habits.length,
+      tasks: tasks.length,
+      real,
+      marks,
+      summary: habits.map((h) => String((h && h.name) || "")).filter(Boolean).slice(0, 8).join(", ").slice(0, 200)
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+async function saveBackup(env, syncId, raw, reason) {
+  const info = describeState(raw);
+  if (!info || info.real === 0) return;
+  await env.DB.prepare(
+    "INSERT INTO state_backups (sync_id, data, created_at, habits, tasks, summary, reason) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).bind(syncId, raw, Date.now(), info.habits, info.tasks, info.summary, reason).run();
+  await env.DB.prepare(
+    "DELETE FROM state_backups WHERE sync_id = ? AND id NOT IN (SELECT id FROM state_backups WHERE sync_id = ? ORDER BY id DESC LIMIT ?)"
+  ).bind(syncId, syncId, BACKUP_KEEP).run();
+}
+
+/* Antes de pisar el estado: guarda una copia si pasó un rato o si los datos se achican. */
+async function backupBeforeWrite(env, syncId, newRaw) {
+  const prev = await env.DB.prepare("SELECT data FROM states WHERE sync_id = ?").bind(syncId).first();
+  if (!prev || prev.data === newRaw) return;
+  const before = describeState(prev.data);
+  if (!before || before.real === 0) return;
+  const after = describeState(newRaw);
+  const shrinks = !after || after.real < before.real || after.marks < before.marks - 2;
+  const last = await env.DB.prepare("SELECT created_at FROM state_backups WHERE sync_id = ? ORDER BY id DESC LIMIT 1").bind(syncId).first();
+  const stale = !last || Date.now() - Number(last.created_at) >= BACKUP_MIN_INTERVAL_MS;
+  if (shrinks) await saveBackup(env, syncId, prev.data, "antes de un cambio que quita datos");
+  else if (stale) await saveBackup(env, syncId, prev.data, "automático");
+}
+
+async function handleBackups(request, env) {
+  try {
+    const auth = await authenticate(request, env);
+    if (!auth) return json({ ok: false, error: "Sesión vencida. Iniciá sesión de nuevo." }, 401);
+    await ensureSchema(env);
+    const rows = await env.DB.prepare(
+      "SELECT id, created_at, habits, tasks, summary, reason FROM state_backups WHERE sync_id = ? ORDER BY id DESC LIMIT 50"
+    ).bind(auth.syncId).all();
+    return json({
+      ok: true,
+      backups: (rows.results || []).map((r) => ({
+        id: r.id, createdAt: Number(r.created_at), habits: r.habits, tasks: r.tasks, summary: r.summary, reason: r.reason
+      }))
+    });
+  } catch (error) {
+    console.error("GET /api/backups", error);
+    return json({ ok: false, error: "No se pudieron leer los respaldos." }, 500);
+  }
+}
+
+async function handleRestore(request, env) {
+  try {
+    const auth = await authenticate(request, env);
+    if (!auth) return json({ ok: false, error: "Sesión vencida. Iniciá sesión de nuevo." }, 401);
+    let body = null;
+    try { body = await request.json(); } catch (error) { body = null; }
+    const id = Number(body && body.id);
+    if (!Number.isInteger(id)) return json({ ok: false, error: "Falta el respaldo a restaurar." }, 400);
+    await ensureSchema(env);
+    const backup = await env.DB.prepare("SELECT data FROM state_backups WHERE id = ? AND sync_id = ?").bind(id, auth.syncId).first();
+    if (!backup) return json({ ok: false, error: "No existe ese respaldo." }, 404);
+    const current = await env.DB.prepare("SELECT data FROM states WHERE sync_id = ?").bind(auth.syncId).first();
+    if (current && current.data !== backup.data) await saveBackup(env, auth.syncId, current.data, "antes de restaurar");
+    const updatedAt = Date.now();
+    await env.DB.prepare(
+      `INSERT INTO states (sync_id, data, updated_at) VALUES (?, ?, ?)
+       ON CONFLICT(sync_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`
+    ).bind(auth.syncId, backup.data, updatedAt).run();
+    return json({ ok: true, updatedAt });
+  } catch (error) {
+    console.error("POST /api/restore", error);
+    return json({ ok: false, error: "No se pudo restaurar el respaldo." }, 500);
+  }
+}
+
+
 async function handleGet(request, env) {
   try {
     const auth = await authenticate(request, env);
@@ -369,6 +466,12 @@ async function handlePut(request, env) {
     await ensureSchema(env);
     const updatedAt = Date.now();
 
+    try {
+      await backupBeforeWrite(env, auth.syncId, serialized);
+    } catch (error) {
+      console.error("backup", error);
+    }
+
     await env.DB.prepare(
       `INSERT INTO states (sync_id, data, updated_at)
        VALUES (?, ?, ?)
@@ -393,6 +496,12 @@ export default {
       if (request.method === "GET") return handleGet(request, env);
       if (request.method === "PUT") return handlePut(request, env);
       return json({ ok: false, error: "Método no permitido." }, 405);
+    }
+    if (path === "/api/backups") {
+      return request.method === "GET" ? handleBackups(request, env) : json({ ok: false, error: "Método no permitido." }, 405);
+    }
+    if (path === "/api/restore") {
+      return request.method === "POST" ? handleRestore(request, env) : json({ ok: false, error: "Método no permitido." }, 405);
     }
     if (path === "/api/register") {
       return request.method === "POST" ? handleRegister(request, env) : json({ ok: false, error: "Método no permitido." }, 405);

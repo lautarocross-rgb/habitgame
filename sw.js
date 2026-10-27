@@ -2,7 +2,7 @@
    Cachea el app shell para que funcione offline y maneja el click
    de las notificaciones del recordatorio diario. */
 
-const CACHE_NAME = "racha-pwa-v11";
+const CACHE_NAME = "racha-pwa-v12";
 const APP_SHELL = [
   "./index.html",
   "./manifest.webmanifest",
