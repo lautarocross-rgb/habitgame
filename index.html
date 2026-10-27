@@ -1722,6 +1722,7 @@
     habit: {
       defaultPoints: 10,
       maxConsecutiveFails: 2,
+      maxWeeklyFails: 3,
       consistencyWindow: 7,
       editablePastDays: Infinity,
       streakTiers: [
@@ -2376,6 +2377,7 @@
     let lastResetDate = null;
     let lastDoneDate = null;
     let lastFailDate = null;
+    const weeklyFails = {};
     let totalPoints = 0;
     const days = [];
     const dayMap = new Map();
@@ -2455,7 +2457,10 @@
           if (streak > 0) runHadRisk = true;
           consecutiveFails += 1;
           lastFailDate = key;
-          if (consecutiveFails > CONFIG.habit.maxConsecutiveFails) {
+          const weekKey = weekStartKey(key);
+          weeklyFails[weekKey] = (weeklyFails[weekKey] || 0) + 1;
+          if (consecutiveFails > CONFIG.habit.maxConsecutiveFails || weeklyFails[weekKey] >= CONFIG.habit.maxWeeklyFails) {
+            weeklyFails[weekKey] = 0;
             streak = 0;
             consecutiveFails = 0;
             runHadRisk = false;
@@ -2917,7 +2922,7 @@
       <div class="rule-item"><span class="rule-icon">🏅</span><div><strong>Bonus de hito</strong><p>${milestoneText} pts extra. Se suman una vez por racha.</p></div></div>
       <div class="rule-item"><span class="rule-icon">📊</span><div><strong>Consistencia de 7 días</strong><p>${consistencyText}. Si venís intermitente, el multiplicador no crece y los puntos se reducen.</p></div></div>
       <div class="rule-item"><span class="rule-icon">🧱</span><div><strong>Hábitos por bloques</strong><p>Si configurás, por ejemplo, 3 bloques de 30 min, el día cuenta como hecho al llegar a 3/3. Los bloques parciales dan puntos proporcionales, pero no mantienen la racha.</p></div></div>
-      <div class="rule-item"><span class="rule-icon">⚠️</span><div><strong>Fallos permitidos</strong><p>Hasta ${CONFIG.habit.maxConsecutiveFails} fallos seguidos la racha se congela. Al tercero se reinicia a 0. Podés corregir cualquier día anterior desde el panel de días.</p></div></div>
+      <div class="rule-item"><span class="rule-icon">⚠️</span><div><strong>Fallos permitidos</strong><p>Hasta ${CONFIG.habit.maxConsecutiveFails} fallos seguidos la racha se congela. Al tercero se reinicia a 0. Además, si en una misma semana (lunes a domingo) fallás ${CONFIG.habit.maxWeeklyFails} veces, seguidas o no, ese hábito se reinicia. Cada hábito se reinicia por separado. Podés corregir cualquier día anterior desde el panel de días.</p></div></div>
       <div class="rule-item"><span class="rule-icon">✅</span><div><strong>Puntos por tarea</strong><p>${taskText} pts. Si la completás cuando está en rojo, ganás +50% de rescate.</p></div></div>`;
   }
 

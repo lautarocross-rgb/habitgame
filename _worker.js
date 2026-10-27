@@ -338,6 +338,25 @@ async function backupBeforeWrite(env, syncId, newRaw) {
   else if (stale) await saveBackup(env, syncId, prev.data, "automático");
 }
 
+/* Cuenta sin datos reales (falta el estado o solo hay ejemplos): vuelve al último respaldo. */
+function isEmptyOrDemo(raw) {
+  const info = describeState(raw);
+  return Boolean(info && info.real === 0 && info.habits + info.tasks > 0);
+}
+
+async function restoreLatestBackup(env, syncId) {
+  const backup = await env.DB.prepare("SELECT data FROM state_backups WHERE sync_id = ? ORDER BY id DESC LIMIT 1").bind(syncId).first();
+  if (!backup) return null;
+  let data;
+  try { data = JSON.parse(backup.data); } catch (error) { return null; }
+  const updatedAt = Date.now();
+  await env.DB.prepare(
+    `INSERT INTO states (sync_id, data, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(sync_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`
+  ).bind(syncId, backup.data, updatedAt).run();
+  return { data, updatedAt };
+}
+
 async function handleBackups(request, env) {
   try {
     const auth = await authenticate(request, env);
@@ -408,6 +427,10 @@ async function handleGet(request, env) {
       .bind(auth.syncId)
       .first();
 
+    if (!row || isEmptyOrDemo(row.data)) {
+      const restored = await restoreLatestBackup(env, auth.syncId);
+      if (restored) return json({ ok: true, exists: true, data: restored.data, updatedAt: restored.updatedAt, restored: true });
+    }
     if (!row) return json({ ok: true, exists: false, data: null, updatedAt: 0 });
 
     let data;
