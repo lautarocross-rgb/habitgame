@@ -1175,6 +1175,7 @@
     .day-chip.is-selected strong, .day-chip.is-selected small { color: #fff; }
     .day-chip.is-selected .day-dot { border-color: rgba(255,255,255,0.85); }
     .day-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .day-week { display: flex; gap: 6px; }
     .day-picker { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
     .day-picker input { min-height: 40px; padding: 0 10px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-2); color: var(--text); color-scheme: inherit; }
     .day-summary { margin-bottom: 12px; }
@@ -1245,6 +1246,10 @@
       .day-chip { min-height: 62px; }
       .day-tools .btn { min-height: 44px; }
       .day-picker span { display: none; }
+      .day-tools { flex-wrap: wrap; }
+      .day-picker { flex: 1 1 100%; }
+      .day-picker input { flex: 1; min-height: 44px; }
+      .day-picker::before { content: "📅 Ir a fecha"; font-size: 12px; }
       .qrow { min-height: 72px; padding: 10px 12px; }
       .q-check { width: 44px; height: 44px; }
     }
@@ -1477,7 +1482,7 @@
           <div>
             <span class="eyebrow">Constancia &gt; intensidad</span>
             <h1>Tracker de hábitos</h1>
-            <p>Marcá hoy y corregí hasta 7 días atrás. La racha aguanta hasta 2 fallos seguidos; al tercero, se reinicia.</p>
+            <p>Marcá hoy y corregí cualquier día anterior. La racha aguanta hasta 2 fallos seguidos; al tercero, se reinicia.</p>
           </div>
           <button class="btn btn-primary" type="button" data-action="new-habit">＋ Nuevo hábito</button>
         </div>
@@ -1688,7 +1693,7 @@
       defaultPoints: 10,
       maxConsecutiveFails: 2,
       consistencyWindow: 7,
-      editablePastDays: 7,
+      editablePastDays: Infinity,
       streakTiers: [
         { min: 1,  multiplier: 1   },
         { min: 3,  multiplier: 1.5 },
@@ -2836,7 +2841,7 @@
       <div class="rule-item"><span class="rule-icon">🏅</span><div><strong>Bonus de hito</strong><p>${milestoneText} pts extra. Se suman una vez por racha.</p></div></div>
       <div class="rule-item"><span class="rule-icon">📊</span><div><strong>Consistencia de 7 días</strong><p>${consistencyText}. Si venís intermitente, el multiplicador no crece y los puntos se reducen.</p></div></div>
       <div class="rule-item"><span class="rule-icon">🧱</span><div><strong>Hábitos por bloques</strong><p>Si configurás, por ejemplo, 3 bloques de 30 min, el día cuenta como hecho al llegar a 3/3. Los bloques parciales dan puntos proporcionales, pero no mantienen la racha.</p></div></div>
-      <div class="rule-item"><span class="rule-icon">⚠️</span><div><strong>Fallos permitidos</strong><p>Hasta ${CONFIG.habit.maxConsecutiveFails} fallos seguidos la racha se congela. Al tercero se reinicia a 0. Podés corregir los últimos ${CONFIG.habit.editablePastDays} días.</p></div></div>
+      <div class="rule-item"><span class="rule-icon">⚠️</span><div><strong>Fallos permitidos</strong><p>Hasta ${CONFIG.habit.maxConsecutiveFails} fallos seguidos la racha se congela. Al tercero se reinicia a 0. Podés corregir cualquier día anterior desde el panel de días.</p></div></div>
       <div class="rule-item"><span class="rule-icon">✅</span><div><strong>Puntos por tarea</strong><p>${taskText} pts. Si la completás cuando está en rojo, ganás +50% de rescate.</p></div></div>`;
   }
 
@@ -2872,7 +2877,9 @@
   function isEditableDate(key) {
     if (!isDateKey(key)) return false;
     const today = todayKey();
-    return key <= today && key >= addDaysKey(today, -CONFIG.habit.editablePastDays);
+    const limit = CONFIG.habit.editablePastDays;
+    if (!Number.isFinite(limit)) return key <= today;
+    return key <= today && key >= addDaysKey(today, -limit);
   }
 
   function earliestHabitDate() {
@@ -3036,7 +3043,11 @@
       </div>
       <div class="day-strip" role="group" aria-label="Elegir día">${chips.join("")}</div>
       <div class="day-tools">
-        <button class="btn btn-small" type="button" data-action="day-today" ${key === today ? "disabled" : ""}>Volver a hoy</button>
+        <div class="day-week">
+          <button class="btn btn-small" type="button" data-action="week-prev" ${key <= min ? "disabled" : ""}>« Semana</button>
+          <button class="btn btn-small" type="button" data-action="week-next" ${key >= today ? "disabled" : ""}>Semana »</button>
+        </div>
+        <button class="btn btn-small" type="button" data-action="day-today" ${key === today ? "disabled" : ""}>Hoy</button>
         <label class="day-picker"><span>📅 Ir a fecha</span><input type="date" id="day-picker" value="${key}" min="${min}" max="${today}"></label>
       </div>
       <div class="day-summary">
@@ -5298,6 +5309,12 @@
         break;
       case "day-next":
         setSelectedDate(addDaysKey(ui.selectedDate, 1));
+        break;
+      case "week-prev":
+        setSelectedDate(addDaysKey(ui.selectedDate, -7));
+        break;
+      case "week-next":
+        setSelectedDate(addDaysKey(ui.selectedDate, 7));
         break;
       case "day-today":
         ui.stripEnd = todayKey();
