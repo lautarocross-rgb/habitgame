@@ -1,0 +1,12 @@
+name = "snowy-bush-9137"
+main = "_worker.js"
+compatibility_date = "2026-10-26"
+
+[assets]
+directory = "."
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "racha-db"
+database_id = "bf109a24-47e0-4852-a8c7-dc2168886e54"

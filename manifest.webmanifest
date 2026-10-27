@@ -1,0 +1,71 @@
+{
+  "id": "./index.html",
+  "name": "Racha · Hábitos y misiones",
+  "short_name": "Racha",
+  "description": "Tracker de hábitos y tareas con racha, puntos, niveles y bloques de estudio. Local primero, con sincronización opcional en tu nube.",
+  "lang": "es-AR",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#070a12",
+  "theme_color": "#070a12",
+  "orientation": "any",
+  "categories": ["productivity", "lifestyle"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuevo hábito",
+      "short_name": "Hábito",
+      "description": "Crear un hábito nuevo",
+      "url": "./index.html?action=new-habit",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Nueva tarea",
+      "short_name": "Tarea",
+      "description": "Agregar una tarea prioritaria",
+      "url": "./index.html?action=new-task",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
