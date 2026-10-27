@@ -1287,6 +1287,8 @@
     .gate-switch .link-btn { font-size: 13.5px; }
     .gate-note { margin-top: 14px; color: var(--faint); font-size: 11.5px; line-height: 1.5; text-align: center; }
 
+    .heat-cell.is-selected { outline: 2px solid var(--accent, #fff); outline-offset: 1px; }
+
     /* ---------- Cuenta (login) ---------- */
     .auth-form { display: grid; gap: 10px; }
     .auth-form .field { margin-top: 0; }
@@ -2883,8 +2885,11 @@
   }
 
   function earliestHabitDate() {
-    const dates = state.habits.filter((habit) => !habit.archived).map((habit) => habit.createdAt);
-    return dates.length ? dates.sort()[0] : todayKey();
+    return addDaysKey(todayKey(), -730);
+  }
+
+  function extendHabitStart(habit, date) {
+    if (date < habit.createdAt) habit.createdAt = date;
   }
 
   function setSelectedDate(key) {
@@ -2913,7 +2918,7 @@
     let done = 0;
     let points = 0;
     for (const habit of habits) {
-      if (key < habit.createdAt || habit.history[key] === "paused") continue;
+      if (habit.history[key] === "paused") continue;
       total++;
       if (habit.history[key] === "done") done++;
       const record = getHabitAnalysis(habit).dayMap.get(key);
@@ -2930,7 +2935,7 @@
     const isToday = key === today;
     const isBlock = habit.mode === "blocks";
     const done = status === "done";
-    const beforeCreation = key < habit.createdAt;
+    const beforeCreation = false;
     const paused = status === "paused";
     const editable = isEditableDate(key) && !beforeCreation && !paused;
     const streak = isToday
@@ -3275,12 +3280,12 @@
       const key = `${year}-${pad(month)}-${pad(day)}`;
       const status = habit.history[key];
       const isFuture = key > today;
-      const isBefore = key < habit.createdAt;
+      const isBefore = false;
       const isToday = key === today;
       const blockDay = isBlockHabit ? (habit.blocks?.[key] || null) : null;
       const blocksCompleted = blockDay ? Math.min(blockTarget, Math.max(0, Number(blockDay.completed) || 0)) : 0;
       const isPartial = isBlockHabit && status !== "done" && status !== "paused" && blocksCompleted > 0 && blocksCompleted < blockTarget;
-      const canEdit = !habit.archived && !isBlockHabit && isEditableDate(key) && key >= habit.createdAt && status !== "paused";
+      const canEdit = !habit.archived;
       const record = analysis.dayMap.get(key);
 
       let cls = "heat-cell";
@@ -3304,8 +3309,9 @@
       else if (isToday) title += "sin marcar todavía";
       else title += "fallado";
 
-      if (canEdit) {
-        cells.push(`<button type="button" class="${cls}" data-action="toggle-day" data-id="${escapeAttr(habit.id)}" data-date="${key}" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}">${day}</button>`);
+      if (key === ui.selectedDate) cls += " is-selected";
+      if (canEdit && !isFuture) {
+        cells.push(`<button type="button" class="${cls}" data-action="goto-day" data-date="${key}" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}">${day}</button>`);
       } else {
         cells.push(`<span class="${cls}" title="${escapeAttr(title)}" aria-label="${escapeAttr(title)}">${day}</span>`);
       }
@@ -4799,7 +4805,8 @@
     const today = todayKey();
     const yesterday = addDaysKey(today, -1);
     if (!isEditableDate(date)) return;
-    if (date < habit.createdAt || date > today) return;
+    if (date > today) return;
+    extendHabitStart(habit, date);
     const currentStatus = habit.history[date];
     if (currentStatus === "paused") return;
 
@@ -4865,7 +4872,8 @@
     const today = todayKey();
     const yesterday = addDaysKey(today, -1);
     if (!isEditableDate(date)) return;
-    if (date < habit.createdAt || date > today) return;
+    if (date > today) return;
+    extendHabitStart(habit, date);
     if (habit.history[date] === "paused") return;
 
     const { target, minutes, completed } = getBlockState(habit, date);
@@ -4925,7 +4933,8 @@
     const today = todayKey();
     const yesterday = addDaysKey(today, -1);
     if (!isEditableDate(date)) return;
-    if (date < habit.createdAt || date > today) return;
+    if (date > today) return;
+    extendHabitStart(habit, date);
     if (habit.history[date] === "paused") return;
 
     const { target, minutes, completed } = getBlockState(habit, date);
@@ -5320,6 +5329,13 @@
         ui.stripEnd = todayKey();
         setSelectedDate(todayKey());
         break;
+      case "goto-day": {
+        setSelectedDate(target.dataset.date);
+        renderHabits();
+        const panel = $("day-panel");
+        if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+        break;
+      }
       case "select-day":
         setSelectedDate(target.dataset.date);
         break;
