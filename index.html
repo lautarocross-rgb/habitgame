@@ -1599,15 +1599,19 @@
         <input id="habit-points" name="habit-points" type="number" min="1" max="1000" step="1" value="10" required inputmode="numeric">
         <small>Se multiplican por la racha y por tu consistencia semanal. En hábitos por bloques se otorgan al cumplir el objetivo; los bloques parciales suman puntos proporcionales. Cambiar este valor no altera los puntos ya ganados.</small>
       </label>
-      <div class="field">
-        <span>Días obligatorios</span>
-        <div class="weekday-picker" id="habit-days" role="group" aria-label="Días obligatorios"></div>
-        <div class="weekday-presets">
-          <button class="btn btn-small" type="button" data-days-preset="all">Todos</button>
-          <button class="btn btn-small" type="button" data-days-preset="weekdays">Lun–Vie</button>
-        </div>
-        <small>Los días sin marcar son opcionales: si los hacés suman como extra, y si no, no rompen la racha ni bajan tu cumplimiento. Ej.: gym de lunes a viernes, y el finde opcional.</small>
-      </div>
+      <label class="field">
+        <span>Veces por semana</span>
+        <select id="habit-weekly" name="habit-weekly">
+          <option value="7">7 de 7 · todos los días</option>
+          <option value="6">6 de 7</option>
+          <option value="5">5 de 7</option>
+          <option value="4">4 de 7</option>
+          <option value="3">3 de 7</option>
+          <option value="2">2 de 7</option>
+          <option value="1">1 de 7</option>
+        </select>
+        <small>Elegí los días que hagan falta por semana (lunes a domingo). Los días que te sobran son de descanso: no rompen la racha ni bajan tu cumplimiento, y si los hacés cuentan como extra. Ej.: gym 5/7, limpiar la casa 3/7.</small>
+      </label>
       <label class="field">
         <span>Tipo de hábito</span>
         <select id="habit-mode" name="habit-mode">
@@ -2106,7 +2110,9 @@
       mode,
       blockMinutes,
       targetBlocks,
-      days: normalizeDays(item.days),
+      weeklyTarget: Number.isInteger(Number(item.weeklyTarget)) && Number(item.weeklyTarget) >= 1 && Number(item.weeklyTarget) <= 7
+        ? Number(item.weeklyTarget)
+        : (Array.isArray(item.days) && item.days.length >= 1 && item.days.length < 7 ? item.days.length : 7),
       blocks,
       history,
       isDemo: Boolean(item.isDemo)
@@ -2287,16 +2293,42 @@
     return 0.2;
   }
 
-  const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
-  function normalizeDays(value) {
-    if (!Array.isArray(value)) return ALL_DAYS.slice();
-    const set = Array.from(new Set(value.map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6))).sort();
-    return set.length ? set : ALL_DAYS.slice();
+  /* Meta semanal por hábito: N de 7 días. Los días de descanso dentro del cupo
+     (7 − N faltas por semana, lunes a domingo) no rompen la racha. */
+  function weeklyTargetOf(habit) {
+    const n = Number(habit && habit.weeklyTarget);
+    return Number.isInteger(n) && n >= 1 && n <= 7 ? n : 7;
   }
+  function weekStartKey(key) {
+    return addDaysKey(key, -((parseDateKey(key).getDay() + 6) % 7));
+  }
+  function weekDoneCount(habit, key) {
+    let count = 0;
+    const start = weekStartKey(key);
+    for (let k = start; k <= addDaysKey(start, 6); k = addDaysKey(k, 1)) {
+      if (habit.history[k] === "done") count++;
+    }
+    return count;
+  }
+  /* true = el día cuenta (si no se hace es fallo); false = descanso / extra. */
   function isRequiredDay(habit, key) {
-    const days = habit.days;
-    if (!Array.isArray(days) || days.length === 0 || days.length === 7) return true;
-    return days.includes(parseDateKey(key).getDay());
+    const target = weeklyTargetOf(habit);
+    if (target >= 7) return true;
+    const today = todayKey();
+    const start = weekStartKey(key);
+    if (key >= today) {
+      let done = 0;
+      for (let k = start; k <= addDaysKey(start, 6); k = addDaysKey(k, 1)) {
+        if (k !== key && habit.history[k] === "done") done++;
+      }
+      return done < target;
+    }
+    let misses = 0;
+    for (let k = start; k <= key; k = addDaysKey(k, 1)) {
+      const st = habit.history[k];
+      if (k >= habit.createdAt && k < today && st !== "done" && st !== "paused") misses++;
+    }
+    return misses > 7 - target;
   }
 
   function getConsistencyForDate(habit, endKey, history) {
@@ -2996,7 +3028,8 @@
     else if (paused) note = "En pausa";
     else if (!editable) note = done ? "Hecho" : "Sin marcar · fuera del rango de corrección";
     const optional = !done && !isRequiredDay(habit, key);
-    if (optional && editable) note = `Opcional · extra · 🔥 ${streak}`;
+    const wt = weeklyTargetOf(habit);
+    if (wt < 7) note = `${optional ? "Descanso / extra" : "🔥 " + streak} · ${Math.min(weekDoneCount(habit, key), wt)}/${wt} esta semana`;
 
     if (isBlock && !beforeCreation) {
       const block = getBlockState(habit, key);
@@ -3109,7 +3142,7 @@
       ${allDone ? '<p class="day-allclear">🎉 ¡Todo marcado para este día!</p>' : ""}
       <div class="qlist">${pending.join("")}</div>
       ${finished.length ? `<p class="q-group-title">Hechos (${finished.length})</p><div class="qlist">${finished.join("")}</div>` : ""}
-      ${optionals.length ? `<p class="q-group-title">Opcionales / extra (${optionals.length})</p><div class="qlist">${optionals.join("")}</div>` : ""}
+      ${optionals.length ? `<p class="q-group-title">Descanso / extra (${optionals.length})</p><div class="qlist">${optionals.join("")}</div>` : ""}
       ${others.length ? `<p class="q-group-title">Sin acción</p><div class="qlist">${others.join("")}</div>` : ""}`;
   }
 
@@ -3355,7 +3388,7 @@
       else if (status === "paused") title += "en pausa";
       else if (isPartial) title += `${blocksCompleted}/${blockTarget} bloques · +${formatNumber(record?.partialPoints || 0)} pts parciales`;
       else if (status === "failed") title += "fallado";
-      else if (!isRequiredDay(habit, key)) title += "día opcional";
+      else if (!isRequiredDay(habit, key)) title += "descanso (cupo semanal)";
       else if (isToday) title += "sin marcar todavía";
       else title += "fallado";
 
@@ -3383,7 +3416,7 @@
           ${isBlockHabit ? '<span><i class="partial"></i>Parcial</span>' : ""}
           <span><i class="failed"></i>Fallado</span>
           <span><i class="gray"></i>Sin marcar</span>
-          ${Array.isArray(habit.days) && habit.days.length < 7 ? '<span><i class="optional"></i>Opcional</span>' : ""}
+          ${weeklyTargetOf(habit) < 7 ? '<span><i class="optional"></i>Descanso</span>' : ""}
         </div>
       </div>`;
   }
@@ -3551,10 +3584,9 @@
     for (let key = start; key <= today; key = addDaysKey(key, 1)) {
       const status = habit.history[key];
       if (status === "paused") continue;
-      const req = isRequiredDay(habit, key);
       if (status === "done") {
-        if (req) { required++; doneRequired++; } else extras++;
-      } else if (req && key < today) {
+        required++; doneRequired++;
+      } else if (key < today && isRequiredDay(habit, key)) {
         required++;
         missByWeekday[parseDateKey(key).getDay()]++;
       }
@@ -3582,7 +3614,7 @@
     }
     const row = (r) => {
       const pct = Math.round(r.rate * 100);
-      const bits = [`${r.doneRequired}/${r.required} días obligatorios`];
+      const bits = [`${r.doneRequired}/${r.required} días cumplidos`];
       if (r.extras) bits.push(`${r.extras} extra`);
       bits.push(`racha 🔥 ${r.streak}`);
       if (r.worstDay >= 0) bits.push(`fallás más los ${DAY_LONG[r.worstDay]}`);
@@ -3599,7 +3631,7 @@
     const done = ready.reduce((n, r) => n + r.doneRequired, 0);
     el.innerHTML = `
       <h3>Informe de hábitos</h3>
-      <p class="chart-note">Últimos 30 días · cumplimiento general ${Math.round((done / total) * 100)}% (${done}/${total}). Los días opcionales no cuentan en contra.</p>
+      <p class="chart-note">Últimos 30 días · cumplimiento general ${Math.round((done / total) * 100)}% (${done}/${total}). Los días de descanso de tu cupo semanal no cuentan en contra.</p>
       <p class="report-sub">💪 Los que más cumplís</p>
       <div class="report-list">${strong.length ? strong.map(row).join("") : '<small class="chart-note">Todavía ninguno llega al 80%. ¡A por el primero!</small>'}</div>
       <p class="report-sub">🎯 Para mejorar</p>
@@ -4479,7 +4511,8 @@
       let transferred = false;
 
       if (remote === null) {
-        if (localChanged || state.habits.length || state.tasks.length) {
+        const demoOnly = state.habits.every((habit) => habit.isDemo) && state.tasks.every((task) => task.isDemo);
+        if (!demoOnly && (localChanged || state.habits.length || state.tasks.length)) {
           await uploadState(sync.code);
           transferred = true;
         }
@@ -4494,7 +4527,7 @@
           const pristine = state.habits.every((habit) => habit.isDemo) && state.tasks.every((task) => task.isDemo);
           if (remoteSig === localSig) {
             recordSynced(remote.updatedAt);
-          } else if (!localChanged || (neverSynced && pristine)) {
+          } else if (!localChanged || pristine) {
             applyData(remote.data);
             recordSynced(remote.updatedAt);
           } else {
@@ -4754,16 +4787,6 @@
     $("habit-block-summary").textContent = `Objetivo diario: ${target * minutes} min (${target} ${target === 1 ? "bloque" : "bloques"} de ${minutes} min).`;
   }
 
-  function renderDaysPicker(days) {
-    const order = [1, 2, 3, 4, 5, 6, 0];
-    const labels = { 1: "L", 2: "M", 3: "M", 4: "J", 5: "V", 6: "S", 0: "D" };
-    $("habit-days").innerHTML = order.map((d) =>
-      `<button type="button" data-weekday="${d}" class="${days.includes(d) ? "is-on" : ""}" aria-pressed="${days.includes(d)}">${labels[d]}</button>`).join("");
-  }
-  function readDaysPicker() {
-    return normalizeDays(Array.from(document.querySelectorAll("#habit-days .is-on")).map((b) => Number(b.dataset.weekday)));
-  }
-
   function openHabitDialog(habit = null) {
     const form = $("habit-form");
     form.reset();
@@ -4787,7 +4810,7 @@
       $("habit-block-minutes").value = CONFIG.habit.blocks.defaultMinutes;
       $("habit-target-blocks").value = CONFIG.habit.blocks.defaultTarget;
     }
-    renderDaysPicker(habit ? normalizeDays(habit.days) : ALL_DAYS);
+    $("habit-weekly").value = String(habit ? weeklyTargetOf(habit) : 7);
     updateHabitColorUI($("habit-color").value);
     updateHabitModeUI();
     if (!dialog.open) dialog.showModal();
@@ -4808,7 +4831,7 @@
     const targetBlocks = clampInt($("habit-target-blocks").value, 1, CONFIG.habit.blocks.maxTarget, CONFIG.habit.blocks.defaultTarget);
     const color = safeColor($("habit-color").value);
     const emoji = ($("habit-emoji").value || "🎯").trim().slice(0, 8) || "🎯";
-    const days = readDaysPicker();
+    const weeklyTarget = clampInt($("habit-weekly").value, 1, 7, 7);
     const id = $("habit-id").value;
 
     if (id) {
@@ -4821,7 +4844,7 @@
       habit.mode = mode;
       habit.blockMinutes = blockMinutes;
       habit.targetBlocks = targetBlocks;
-      habit.days = days;
+      habit.weeklyTarget = weeklyTarget;
       if (mode === "blocks") {
         if (!habit.blocks) habit.blocks = {};
         // Al convertir un hábito simple a bloques, los días ya hechos
@@ -4871,7 +4894,7 @@
         mode,
         blockMinutes,
         targetBlocks,
-        days,
+        weeklyTarget,
         blocks: {},
         history: {},
         isDemo: false
@@ -5585,16 +5608,6 @@
     $("task-form").addEventListener("submit", saveTask);
     $("habit-color").addEventListener("input", (event) => updateHabitColorUI(event.target.value));
     $("habit-mode").addEventListener("change", updateHabitModeUI);
-    $("habit-dialog").addEventListener("click", (event) => {
-      const day = event.target.closest("[data-weekday]");
-      if (day) {
-        day.classList.toggle("is-on");
-        day.setAttribute("aria-pressed", day.classList.contains("is-on"));
-        return;
-      }
-      const preset = event.target.closest("[data-days-preset]");
-      if (preset) renderDaysPicker(preset.dataset.daysPreset === "weekdays" ? [1, 2, 3, 4, 5] : ALL_DAYS);
-    });
     $("habit-block-minutes").addEventListener("input", updateHabitModeUI);
     $("habit-target-blocks").addEventListener("input", updateHabitModeUI);
     $("import-file").addEventListener("change", (event) => {
