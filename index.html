@@ -4467,7 +4467,7 @@
   function syncErrorMessage(error) {
     const message = error && error.message ? String(error.message) : "";
     if (!message) return "revisá la conexión.";
-    if (/failed to fetch|networkerror|load failed|fetch/i.test(message)) return "no hay conexión con la nube.";
+    if (/failed to fetch|networkerror|load failed|fetch/i.test(message)) return `no hay conexión con la nube (${message.slice(0, 70)})`;
     return message;
   }
 
